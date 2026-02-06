@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PromptHQ</title>
+  <style>
+    @font-face {
+      font-family: 'StackSansText';
+      src: url('StackSansText-Bold.ttf') format('truetype');
+      font-weight: 700;
+      font-display: swap;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      background: #000000;
+      overflow: hidden;
+    }
+    canvas { position: fixed; top: 0; left: 0; display: block; }
+    .loader {
+      position: fixed; inset: 0; background: #000000;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+    .loader.hidden { opacity: 0; visibility: hidden; }
+    .loader-ring {
+      width: 48px; height: 48px;
+      border: 3px solid rgba(255,255,255,0.2);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="loader" id="loader"><div class="loader-ring"></div></div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+
+    const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 100);
+    camera.position.set(0, 0, 7);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
+
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment()).texture;
+    pmrem.dispose();
+
+    // ── Render target for refraction (2-pass rendering) ──
+    const rtW = Math.floor(innerWidth * Math.min(devicePixelRatio, 2));
+    const rtH = Math.floor(innerHeight * Math.min(devicePixelRatio, 2));
+    const backgroundRT = new THREE.WebGLRenderTarget(rtW, rtH, {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat,
+    });
+
+    // ── Noise texture (256x256 random RGBA via Canvas2D) ──
+    const noiseCanvas = document.createElement('canvas');
+    noiseCanvas.width = noiseCanvas.height = 256;
+    const noiseCtx = noiseCanvas.getContext('2d');
+    const noiseData = noiseCtx.createImageData(256, 256);
+    for (let i = 0; i < noiseData.data.length; i++) {
+      noiseData.data[i] = Math.random() * 255;
+    }
+    noiseCtx.putImageData(noiseData, 0, 0);
+    const noiseTex = new THREE.CanvasTexture(noiseCanvas);
+    noiseTex.wrapS = noiseTex.wrapT = THREE.RepeatWrapping;
+
+    // ── Cylindrical grid with crosshairs ──
+    const gridVertShader = /* glsl */`
+      varying vec2 vUv;
+      uniform vec3 uScale;
+      uniform float uTime;
+      #define PI 3.14159265359
+
+      void main() {
+        vec2 localPos = position.xy;
+        float theta = localPos.x * PI;
+
+        vec3 pos = vec3(
+          sin(theta) * 0.5 * uScale.x,
+          localPos.y * uScale.y * 1.5,
+          -cos(theta) * uScale.x * 0.5
+        );
+
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        vUv = uv;
+      }
+    `;
+
+    const gridFragShader = /* glsl */`
+      varying vec2 vUv;
+      uniform vec2 uGrid;
+      uniform float uTime;
+
+      void main() {
+        vec2 gridUv = vUv * uGrid;
+        gridUv.y += uTime * 0.03;
+
+        // Grid lines via fract
+        float lineThreshold = 0.45;
+        float lineX = smoothstep(lineThreshold, 0.5, abs(fract(gridUv.x) - 0.5));
+        float lineY = smoothstep(lineThreshold, 0.5, abs(fract(gridUv.y) - 0.5));
+        float line = max(lineX, lineY);
+
+        // Cross-hairs at intersections
+        vec2 cellUv = fract(gridUv) - 0.5;
+        float cW = 0.08;
+        float crossH = smoothstep(cW, 0.01, abs(cellUv.x)) * smoothstep(0.15, 0.0, abs(cellUv.y));
+        float crossV = smoothstep(cW, cW * 0.1, abs(cellUv.y)) * smoothstep(0.15, 0.0, abs(cellUv.x));
+        float cross = max(crossH, crossV);
+
+        float alpha = line * 0.12 + cross * 0.25;
+
+        gl_FragColor = vec4(vec3(1.0), alpha);
+      }
+    `;
+
+    const gridMat = new THREE.ShaderMaterial({
+      vertexShader: gridVertShader,
+      fragmentShader: gridFragShader,
+      uniforms: {
+        uScale: { value: new THREE.Vector3(14, 10, 1) },
+        uGrid: { value: new THREE.Vector2(32, 24) },
+        uTime: { value: 0 },
+      },
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    scene.add(new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 64, 64), gridMat));
+
+    // ── Glass shader (Alche-style custom refraction) ──
+    const glassVertexShader = /* glsl */`
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vViewPos;
+
+      void main() {
+        vUv = uv;
+        vNormal = normalize(normalMatrix * normal);
+        vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+        vViewPos = mvPos.xyz;
+        gl_Position = projectionMatrix * mvPos;
+      }
+    `;
+
+    const glassFragmentShader = /* glsl */`
+      #define PI 3.14159265359
+      #define SAMPLES 8
+
+      uniform sampler2D uTrnsTex;
+      uniform vec2 uTrnsWinRes;
+      uniform sampler2D uNoiseTex;
+      uniform samplerCube uEnvMap;
+      uniform float uRoughness;
+      uniform float uNoiseScale;
+      uniform vec3 uMaterialColor;
+      uniform vec2 uMousePos;
+      uniform float uMouseVelocity;
+
+      varying vec2 vUv;
+      varying vec3 vNormal;
+      varying vec3 vViewPos;
+
+      float random(vec2 p) {
+        return fract(sin(dot(p.xy, vec2(12.9898, 78.233))) * 43758.5453);
+      }
+
+      float ggx(float dNH, float roughness) {
+        float a2 = roughness * roughness;
+        a2 = a2 * a2;
+        float dNH2 = dNH * dNH;
+        if (dNH2 <= 0.0) return 0.0;
+        return a2 / (PI * pow(dNH2 * (a2 - 1.0) + 1.0, 2.0));
+      }
+
+      float fresnel(float d) {
+        float f0 = 0.1;
+        return f0 + (1.0 - f0) * pow(1.0 - d, 5.0);
+      }
+
+      void main() {
+        vec3 normal = normalize(vNormal);
+        vec3 viewDir = normalize(-vViewPos);
+        vec2 trnsUv = gl_FragCoord.xy / uTrnsWinRes;
+
+        // Mouse interactive refraction boost
+        float mouseDist = distance(trnsUv, uMousePos);
+        float mouseProximity = smoothstep(0.4, 0.0, mouseDist);
+        float velocityBoost = uMouseVelocity;
+        float proximityBoost = mouseProximity * 0.6;
+        float totalBoost = max(velocityBoost, proximityBoost);
+
+        // Noise-based roughness variation (frosted glass)
+        vec4 noise = texture2D(uNoiseTex, vUv * uNoiseScale);
+        vec4 noise2 = texture2D(uNoiseTex, vUv * 1.0 + (noise.xy - 0.5) * 2.0);
+        float roughness = smoothstep(0.3, 0.8, noise2.y) * uRoughness;
+
+        // Refraction normal (3D normal -> 2D screen offset)
+        vec2 refractNormal = normal.xy * (1.0 - normal.z * 0.7);
+        float refractPower = 0.15 * (1.0 + totalBoost * 2.0);
+        float slideMultiplier = 1.0 + totalBoost * 3.0;
+        vec2 refractUv = trnsUv;
+
+        // Multi-sample refraction with chromatic aberration
+        vec3 refractCol = vec3(0.0);
+        for (int i = 0; i < SAMPLES; i++) {
+          float slide = (0.01 + random(trnsUv + float(i) * 0.2) * 0.015) * slideMultiplier;
+          vec2 roughnessDir = vec2(
+            random(trnsUv + float(i) * 0.1) - 0.5,
+            random(trnsUv + float(i) * 0.2) - 0.5
+          ) * roughness * 0.3;
+
+          vec2 refractUvR = roughnessDir + refractUv - refractNormal * (refractPower + slide * 1.0);
+          vec2 refractUvG = roughnessDir + refractUv - refractNormal * (refractPower + slide * 2.0);
+          vec2 refractUvB = roughnessDir + refractUv - refractNormal * (refractPower + slide * 4.0);
+
+          refractCol.r += texture2D(uTrnsTex, refractUvR).r;
+          refractCol.g += texture2D(uTrnsTex, refractUvG).g;
+          refractCol.b += texture2D(uTrnsTex, refractUvB).b;
+        }
+        refractCol /= float(SAMPLES);
+
+        vec3 c = refractCol;
+
+        // Apply material color tint
+        c *= uMaterialColor / 255.0;
+
+        // GGX specular highlight
+        vec3 lightDir = normalize(vec3(4.0, 4.0, 5.0) - vViewPos);
+        vec3 halfVec = normalize(viewDir + lightDir);
+        float dNH = max(dot(normal, halfVec), 0.0);
+        float spec = ggx(dNH, 0.003 + roughness * 0.4);
+        c += vec3(1.0) * spec * 0.6;
+
+        // Second specular from opposite light
+        vec3 lightDir2 = normalize(vec3(-5.0, -1.0, 4.0) - vViewPos);
+        vec3 halfVec2 = normalize(viewDir + lightDir2);
+        float dNH2 = max(dot(normal, halfVec2), 0.0);
+        float spec2 = ggx(dNH2, 0.003 + roughness * 0.4);
+        c += vec3(1.0) * spec2 * 0.3;
+
+        // Fresnel + environment reflection (Alche-style blend)
+        float F = fresnel(max(dot(viewDir, normal), 0.0));
+        vec3 reflectDir = reflect(-viewDir, normal);
+        vec3 envColor = textureCube(uEnvMap, reflectDir).rgb;
+        c = mix(c, envColor, F * 0.5) + c * F * 0.15;
+
+        // Brightness boost
+        c *= 1.15;
+
+        gl_FragColor = vec4(c, 1.0);
+      }
+    `;
+
+    // ── Environment CubeMap for reflections ──
+    const cubeRT = new THREE.WebGLCubeRenderTarget(256, {
+      format: THREE.RGBAFormat,
+      generateMipmaps: true,
+      minFilter: THREE.LinearMipmapLinearFilter,
+    });
+    const cubeCamera = new THREE.CubeCamera(0.1, 100, cubeRT);
+    scene.add(cubeCamera);
+
+    const glassMaterial = new THREE.ShaderMaterial({
+      vertexShader: glassVertexShader,
+      fragmentShader: glassFragmentShader,
+      uniforms: {
+        uTrnsTex: { value: backgroundRT.texture },
+        uTrnsWinRes: { value: new THREE.Vector2(rtW, rtH) },
+        uNoiseTex: { value: noiseTex },
+        uEnvMap: { value: cubeRT.texture },
+        uRoughness: { value: 0.1 },
+        uNoiseScale: { value: 9.0 },
+        uMaterialColor: { value: new THREE.Vector3(255, 255, 255) },
+        uMousePos: { value: new THREE.Vector2(0.5, 0.5) },
+        uMouseVelocity: { value: 0.0 },
+      },
+      side: THREE.DoubleSide,
+    });
+
+    const logoGroup = new THREE.Group();
+    scene.add(logoGroup);
+
+    let envCaptured = false;
+
+    new GLTFLoader().load('logo_black.glb', (gltf) => {
+      const model = gltf.scene;
+      const box = new THREE.Box3().setFromObject(model);
+      const size = box.getSize(new THREE.Vector3());
+      model.scale.setScalar(3.0 / Math.max(size.x, size.y, size.z));
+      model.rotation.x = Math.PI / 2;
+
+      const center = new THREE.Box3().setFromObject(model).getCenter(new THREE.Vector3());
+      model.position.sub(center);
+
+      model.traverse((child) => { if (child.isMesh) child.material = glassMaterial; });
+
+      logoGroup.add(model);
+      document.getElementById('loader').classList.add('hidden');
+    });
+
+    // ── "PromptHQ" text ──
+    document.fonts.ready.then(() => {
+      const c = document.createElement('canvas');
+      c.width = 4096; c.height = 1024;
+      const ctx = c.getContext('2d');
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      let fs = 400;
+      ctx.font = `700 ${fs}px StackSansText, system-ui, sans-serif`;
+      fs = Math.round(fs * (c.width * 0.55) / ctx.measureText('PromptHQ').width);
+      ctx.font = `700 ${fs}px StackSansText, system-ui, sans-serif`;
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(255,255,255,0.4)';
+      ctx.shadowBlur = 100;
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillText('PromptHQ', c.width / 2, c.height / 2);
+      ctx.fillText('PromptHQ', c.width / 2, c.height / 2);
+      ctx.restore();
+
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.fillText('PromptHQ', c.width / 2, c.height / 2);
+
+      const texture = new THREE.CanvasTexture(c);
+      texture.minFilter = THREE.LinearFilter;
+      texture.colorSpace = THREE.SRGBColorSpace;
+
+      const dist = camera.position.z + 3;
+      const visH = 2 * Math.tan(camera.fov * Math.PI / 360) * dist;
+      const planeW = visH * camera.aspect * 0.85;
+      const plane = new THREE.Mesh(
+        new THREE.PlaneGeometry(planeW, planeW / 4),
+        new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false })
+      );
+      plane.position.z = -3;
+      scene.add(plane);
+    });
+
+    // ── Lights ──
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const l1 = new THREE.PointLight(0xffffff, 5, 20);
+    l1.position.set(4, 4, 5); scene.add(l1);
+    const l2 = new THREE.PointLight(0xffe0cc, 3, 20);
+    l2.position.set(-5, -1, 4); scene.add(l2);
+    const l3 = new THREE.PointLight(0xffffff, 4, 15);
+    l3.position.set(0, 2, -3); scene.add(l3);
+    const dl = new THREE.DirectionalLight(0xffffff, 1);
+    dl.position.set(0, 5, 5); scene.add(dl);
+
+    // ── Mouse + animation ──
+    let mx = 0, my = 0, tmx = 0, tmy = 0;
+    let prevTmx = 0, prevTmy = 0;
+    let mouseSpeed = 0, mouseVelocity = 0;
+
+    addEventListener('mousemove', e => {
+      tmx = (e.clientX / innerWidth) * 2 - 1;
+      tmy = -(e.clientY / innerHeight) * 2 + 1;
+    });
+
+    const ENTRANCE_DURATION = 2.0;
+    let startTime = null;
+
+    function animate(timestamp) {
+      requestAnimationFrame(animate);
+      if (!startTime) startTime = timestamp;
+      const elapsed = (timestamp - startTime) * 0.001;
+
+      logoGroup.scale.setScalar(1 - Math.pow(1 - Math.min(elapsed / ENTRANCE_DURATION, 1), 3));
+
+      gridMat.uniforms.uTime.value = elapsed;
+
+      // 1. Smooth mouse + velocity tracking
+      const dx = tmx - prevTmx;
+      const dy = tmy - prevTmy;
+      mouseSpeed = Math.sqrt(dx * dx + dy * dy);
+      prevTmx = tmx; prevTmy = tmy;
+      mouseVelocity += (mouseSpeed * 8.0 - mouseVelocity) * 0.1;
+      mouseVelocity *= 0.95; // decay
+      mouseVelocity = Math.min(mouseVelocity, 1.0);
+
+      mx += (tmx - mx) * 0.04;
+      my += (tmy - my) * 0.04;
+
+      // 2. Update glass interactive refraction uniforms
+      glassMaterial.uniforms.uMousePos.value.set(
+        (tmx + 1.0) * 0.5,
+        (tmy + 1.0) * 0.5
+      );
+      glassMaterial.uniforms.uMouseVelocity.value = mouseVelocity;
+
+      // 3. Logo rotation/float
+      logoGroup.rotation.z = elapsed * 0.05;
+      logoGroup.rotation.x = my * 0.2 + Math.sin(elapsed * 0.3) * 0.03;
+      logoGroup.rotation.y = mx * 0.2 + Math.cos(elapsed * 0.25) * 0.03;
+      logoGroup.position.y = Math.sin(elapsed * 0.4) * 0.06;
+
+      // Capture environment cubemap once (after first frame setup)
+      if (!envCaptured && logoGroup.children.length > 0) {
+        logoGroup.visible = false;
+        cubeCamera.position.copy(logoGroup.position);
+        cubeCamera.update(renderer, scene);
+        logoGroup.visible = true;
+        envCaptured = true;
+      }
+
+      // Two-pass rendering: background RT then final
+      logoGroup.visible = false;
+      renderer.setRenderTarget(backgroundRT);
+      renderer.render(scene, camera);
+      renderer.setRenderTarget(null);
+      logoGroup.visible = true;
+
+      renderer.render(scene, camera);
+    }
+
+    requestAnimationFrame(animate);
+    setTimeout(() => document.getElementById('loader').classList.add('hidden'), 5000);
+
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+
+      // Update render target size
+      const newW = Math.floor(innerWidth * Math.min(devicePixelRatio, 2));
+      const newH = Math.floor(innerHeight * Math.min(devicePixelRatio, 2));
+      backgroundRT.setSize(newW, newH);
+      glassMaterial.uniforms.uTrnsWinRes.value.set(newW, newH);
+
+    });
+  </script>
+</body>
+</html>

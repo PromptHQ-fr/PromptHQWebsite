@@ -1,0 +1,22 @@
+[     323ms] [ERROR] Error: <svg> attribute height: Expected length, "auto". @ https://alche.studio/:18
+[    3433ms] [WARNING] [.WebGL-0x11c00487a00] GL_INVALID_FRAMEBUFFER_OPERATION: glDrawElements: Framebuffer is incomplete: Attachment has zero size. @ https://alche.studio/:0
+[    3433ms] [WARNING] [.WebGL-0x11c00487a00] GL_INVALID_FRAMEBUFFER_OPERATION: glDrawElements: Framebuffer is incomplete: Attachment has zero size. @ https://alche.studio/:0
+[    3433ms] [WARNING] [.WebGL-0x11c00487a00] GL_INVALID_FRAMEBUFFER_OPERATION: glDrawElements: Framebuffer is incomplete: Attachment has zero size. @ https://alche.studio/:0
+[    3433ms] [WARNING] [.WebGL-0x11c00487a00] GL_INVALID_FRAMEBUFFER_OPERATION: glDrawElements: Framebuffer is incomplete: Attachment has zero size. @ https://alche.studio/:0
+[    3433ms] [WARNING] [.WebGL-0x11c00487a00] GL_INVALID_FRAMEBUFFER_OPERATION: glDrawElements: Framebuffer is incomplete: Attachment has zero size. @ https://alche.studio/:0
+[    3433ms] [WARNING] [.WebGL-0x11c00487a00] GL_INVALID_FRAMEBUFFER_OPERATION: glDrawElements: Framebuffer is incomplete: Attachment has zero size. @ https://alche.studio/:0
+[    3433ms] [WARNING] [.WebGL-0x11c00487a00] GL_INVALID_FRAMEBUFFER_OPERATION: glDrawElements: Framebuffer is incomplete: Attachment has zero size. @ https://alche.studio/:0
+[    3433ms] [WARNING] [.WebGL-0x11c00487a00] GL_INVALID_FRAMEBUFFER_OPERATION: glDrawElements: Framebuffer is incomplete: Attachment has zero size. @ https://alche.studio/:0
+[    5186ms] [WARNING] ServiceTitleController: Service title element not found - this may be expected on some pages @ https://alche.studio/_astro/index.astro_astro_type_script_index_0_lang.By-AX0mG.js:4099
+[    5856ms] [WARNING] ServiceIndicatorController: Elements not found @ https://alche.studio/_astro/index.astro_astro_type_script_index_0_lang.By-AX0mG.js:4099
+[   48420ms] [ERROR] Error: <svg> attribute height: Expected length, "auto". @ https://alche.studio/:18
+[   48628ms] [WARNING] [.WebGL-0x11c0048f800] GL_INVALID_FRAMEBUFFER_OPERATION: glDrawElements: Framebuffer is incomplete: Attachment has zero size. @ https://alche.studio/:0
+[   48628ms] [WARNING] [.WebGL-0x11c0048f800] GL_INVALID_FRAMEBUFFER_OPERATION: glDrawElements: Framebuffer is incomplete: Attachment has zero size. @ https://alche.studio/:0
+[   48628ms] [WARNING] [.WebGL-0x11c0048f800] GL_INVALID_FRAMEBUFFER_OPERATION: glDrawElements: Framebuffer is incomplete: Attachment has zero size. @ https://alche.studio/:0
+[   48628ms] [WARNING] [.WebGL-0x11c0048f800] GL_INVALID_FRAMEBUFFER_OPERATION: glDrawElements: Framebuffer is incomplete: Attachment has zero size. @ https://alche.studio/:0
+[   48628ms] [WARNING] [.WebGL-0x11c0048f800] GL_INVALID_FRAMEBUFFER_OPERATION: glDrawElements: Framebuffer is incomplete: Attachment has zero size. @ https://alche.studio/:0
+[   48628ms] [WARNING] [.WebGL-0x11c0048f800] GL_INVALID_FRAMEBUFFER_OPERATION: glDrawElements: Framebuffer is incomplete: Attachment has zero size. @ https://alche.studio/:0
+[   48628ms] [WARNING] [.WebGL-0x11c0048f800] GL_INVALID_FRAMEBUFFER_OPERATION: glDrawElements: Framebuffer is incomplete: Attachment has zero size. @ https://alche.studio/:0
+[   48628ms] [WARNING] [.WebGL-0x11c0048f800] GL_INVALID_FRAMEBUFFER_OPERATION: glDrawElements: Framebuffer is incomplete: Attachment has zero size. @ https://alche.studio/:0
+[   49261ms] [WARNING] ServiceTitleController: Service title element not found - this may be expected on some pages @ https://alche.studio/_astro/index.astro_astro_type_script_index_0_lang.By-AX0mG.js:4099
+[   49470ms] [WARNING] ServiceIndicatorController: Elements not found @ https://alche.studio/_astro/index.astro_astro_type_script_index_0_lang.By-AX0mG.js:4099
