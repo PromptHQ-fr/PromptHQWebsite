@@ -7,8 +7,8 @@
   <style>
     @font-face {
       font-family: 'StackSansText';
-      src: url('StackSansText-Bold.ttf') format('truetype');
-      font-weight: 700;
+      src: url('StackSansText-VariableFont_wght.ttf') format('truetype');
+      font-weight: 100 900;
       font-display: swap;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -20,21 +20,211 @@
     canvas { position: fixed; top: 0; left: 0; display: block; }
     .loader {
       position: fixed; inset: 0; background: #000000;
-      display: flex; align-items: center; justify-content: center;
-      z-index: 100; transition: opacity 0.8s ease, visibility 0.8s ease;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 100; transition: opacity 0.6s ease, visibility 0.6s ease;
     }
-    .loader.hidden { opacity: 0; visibility: hidden; }
-    .loader-ring {
-      width: 48px; height: 48px;
-      border: 3px solid rgba(255,255,255,0.2);
-      border-top-color: #fff; border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+    .loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .loader-text {
+      font-family: 'StackSansText', monospace, system-ui;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 6px;
+      color: rgba(255,255,255,0.9);
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-text .char {
+      display: inline-block;
+      min-width: 0.6em;
+      text-align: center;
+    }
+    .loader-text .char.glitch {
+      color: #F82F02;
+      text-shadow: 0 0 8px rgba(248,47,2,0.5);
+    }
+    .loader-text .char.resolved {
+      color: rgba(255,255,255,0.9);
+      text-shadow: none;
+    }
+    .loader-scanlines {
+      position: fixed; inset: 0; pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px
+      );
+      z-index: 101; opacity: 0; transition: opacity 0.3s ease;
+    }
+    .loader-scanlines.active { opacity: 1; }
+    .loader-cursor {
+      display: inline-block; width: 2px; height: 1.1em;
+      background: #F82F02; margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: blink 0.6s step-end infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+    .loader-sub {
+      font-family: 'StackSansText', monospace, system-ui;
+      font-size: 11px; font-weight: 500;
+      letter-spacing: 3px; text-transform: uppercase;
+      color: rgba(255,255,255,0.25);
+      margin-top: 16px; opacity: 0; transition: opacity 0.4s ease;
+    }
+    .loader-sub.visible { opacity: 1; }
+
+    .discord-widget {
+      position: fixed;
+      bottom: 33%;
+      right: 160px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      font-family: 'StackSansText', system-ui, sans-serif;
+    }
+    .discord-stat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 26px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.85);
+    }
+    .discord-stat .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .discord-stat .dot.green { background: #23a55a; }
+    .discord-stat .dot.grey { background: rgba(255,255,255,0.5); }
+    .discord-join {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    .discord-join svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+    .discord-join:hover { color: #fff; }
   </style>
 </head>
 <body>
-  <div class="loader" id="loader"><div class="loader-ring"></div></div>
+  <div class="loader-scanlines" id="scanlines"></div>
+  <div class="loader" id="loader">
+    <div class="loader-text" id="glitch-text"></div>
+    <div class="loader-sub" id="loader-sub">initializing</div>
+  </div>
+
+  <div class="discord-widget" id="discord-widget">
+    <div class="discord-stat" id="stat-online" style="display:none"><span class="dot green"></span><span id="online-count"></span> online</div>
+    <div class="discord-stat" id="stat-members" style="display:none"><span class="dot grey"></span><span id="member-count"></span> members</div>
+    <a href="https://discord.gg/xaBr8E235f" target="_blank" rel="noopener" class="discord-join">
+      <svg viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+      Join Discord
+    </a>
+  </div>
+  <script>
+    fetch('https://discord.com/api/v10/invites/xaBr8E235f?with_counts=true')
+      .then(r => r.json())
+      .then(d => {
+        if (d.approximate_member_count) {
+          document.getElementById('online-count').textContent = d.approximate_presence_count.toLocaleString();
+          document.getElementById('member-count').textContent = d.approximate_member_count.toLocaleString();
+          document.getElementById('stat-online').style.display = 'flex';
+          document.getElementById('stat-members').style.display = 'flex';
+        }
+      })
+      .catch(() => {});
+  </script>
+
+  <script>
+    // Glitch text loader animation
+    (function() {
+      const target = 'PromptHQ';
+      const glitchChars = '!@#$%^&*()_+-=[]{}|;:<>?/~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const el = document.getElementById('glitch-text');
+      const sub = document.getElementById('loader-sub');
+      const scanlines = document.getElementById('scanlines');
+      const resolved = new Array(target.length).fill(false);
+      let started = false;
+
+      // Build initial random chars
+      function randomChar() { return glitchChars[Math.floor(Math.random() * glitchChars.length)]; }
+
+      function render() {
+        let html = '';
+        for (let i = 0; i < target.length; i++) {
+          if (resolved[i]) {
+            html += '<span class="char resolved">' + target[i] + '</span>';
+          } else {
+            html += '<span class="char glitch">' + randomChar() + '</span>';
+          }
+        }
+        html += '<span class="loader-cursor"></span>';
+        el.innerHTML = html;
+      }
+
+      // Scramble unresolved chars every 50ms
+      const scrambleInterval = setInterval(render, 50);
+
+      // Resolve one random unresolved char every ~200ms
+      let resolveCount = 0;
+      function resolveNext() {
+        const unresolved = [];
+        for (let i = 0; i < target.length; i++) {
+          if (!resolved[i]) unresolved.push(i);
+        }
+        if (unresolved.length === 0) {
+          clearInterval(scrambleInterval);
+          render();
+          return;
+        }
+        const idx = unresolved[Math.floor(Math.random() * unresolved.length)];
+        resolved[idx] = true;
+        resolveCount++;
+        render();
+        // Accelerate toward the end
+        const delay = 120 + Math.random() * 180 - resolveCount * 15;
+        setTimeout(resolveNext, Math.max(40, delay));
+      }
+
+      // Start after short delay, show scanlines
+      setTimeout(() => {
+        scanlines.classList.add('active');
+        sub.classList.add('visible');
+        started = true;
+        setTimeout(resolveNext, 300);
+      }, 200);
+
+      // Expose dismiss function for when scene is ready
+      window._dismissLoader = function() {
+        // Wait for text to finish resolving, then hide
+        const check = setInterval(() => {
+          if (resolved.every(Boolean)) {
+            clearInterval(check);
+            clearInterval(scrambleInterval);
+            setTimeout(() => {
+              document.getElementById('loader').classList.add('hidden');
+              scanlines.classList.remove('active');
+            }, 400);
+          }
+        }, 100);
+        // Fallback: force hide after 2s regardless
+        setTimeout(() => {
+          clearInterval(check);
+          clearInterval(scrambleInterval);
+          document.getElementById('loader').classList.add('hidden');
+          scanlines.classList.remove('active');
+        }, 2000);
+      };
+    })();
+  </script>
 
   <script type="importmap">
   {
@@ -304,6 +494,30 @@
       format: THREE.RGBAFormat,
     });
 
+    // ── Bloom pipeline render targets ──
+    const sceneRT = new THREE.WebGLRenderTarget(rtW, rtH, {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat,
+    });
+
+    let bw1 = Math.floor(rtW / 4), bh1 = Math.floor(rtH / 4);
+    let bw2 = Math.floor(rtW / 8), bh2 = Math.floor(rtH / 8);
+    let bw3 = Math.floor(rtW / 16), bh3 = Math.floor(rtH / 16);
+    const bloomOpts = {
+      minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat, type: THREE.HalfFloatType,
+      depthBuffer: false, stencilBuffer: false,
+    };
+
+    const bloomBrightRT = new THREE.WebGLRenderTarget(bw1, bh1, bloomOpts);
+    const bloom0H = new THREE.WebGLRenderTarget(bw1, bh1, bloomOpts);
+    const bloom0V = new THREE.WebGLRenderTarget(bw1, bh1, bloomOpts);
+    const bloom1H = new THREE.WebGLRenderTarget(bw2, bh2, bloomOpts);
+    const bloom1V = new THREE.WebGLRenderTarget(bw2, bh2, bloomOpts);
+    const bloom2H = new THREE.WebGLRenderTarget(bw3, bh3, bloomOpts);
+    const bloom2V = new THREE.WebGLRenderTarget(bw3, bh3, bloomOpts);
+
     // ── Noise texture (256x256 random RGBA via Canvas2D) ──
     const noiseCanvas = document.createElement('canvas');
     noiseCanvas.width = noiseCanvas.height = 256;
@@ -497,8 +711,8 @@
           faceColor = c;
         }
 
-        // Dim to keep tiles as background
-        faceColor *= 0.15 + vInstanceID.z * 0.1;
+        // Tile brightness
+        faceColor *= 0.35 + vInstanceID.z * 0.15;
 
         // Logo overlay — 3 display modes spanning across tiles (Alche-style)
         float logoMode = floor(vInstanceID.y * 3.0); // 0, 1, or 2
@@ -863,7 +1077,7 @@
       model.traverse((child) => { if (child.isMesh) child.material = glassMaterial; });
 
       logoGroup.add(model);
-      document.getElementById('loader').classList.add('hidden');
+      if (window._dismissLoader) window._dismissLoader();
     });
 
     // ── "PromptHQ" text ──
@@ -915,6 +1129,108 @@
     l3.position.set(0, 2, -3); scene.add(l3);
     const dl = new THREE.DirectionalLight(0xffffff, 1);
     dl.position.set(0, 5, 5); scene.add(dl);
+
+    // ── Bloom shaders & materials ──
+    const bloomVertShader = /* glsl */`
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = vec4(position.xy, 0.0, 1.0);
+      }
+    `;
+
+    // Bright extraction (Alche-style: threshold + multiply)
+    const bloomBrightMat = new THREE.ShaderMaterial({
+      vertexShader: bloomVertShader,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform sampler2D uSceneTex;
+        uniform float uThreshold;
+        varying vec2 vUv;
+        void main() {
+          vec4 c = texture2D(uSceneTex, vUv);
+          vec3 f = max(vec3(0.0), c.rgb - uThreshold);
+          gl_FragColor = vec4(c.rgb * f, 1.0);
+        }
+      `,
+      uniforms: {
+        uSceneTex: { value: null },
+        uThreshold: { value: 0.35 },
+      },
+    });
+
+    // Separable Gaussian blur (5-tap, offset * 2.0 for wider spread)
+    const bloomBlurMat = new THREE.ShaderMaterial({
+      vertexShader: bloomVertShader,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform sampler2D uBloomTex;
+        uniform vec2 uResolution;
+        uniform bool uIsVertical;
+        varying vec2 vUv;
+        void main() {
+          float w0 = 0.227027, w1 = 0.1945946, w2 = 0.1216216, w3 = 0.054054, w4 = 0.016216;
+          vec3 sum = w0 * texture2D(uBloomTex, vUv).rgb;
+          vec2 d1 = (uIsVertical ? vec2(0.0, 1.0) : vec2(1.0, 0.0)) * 2.0;
+          vec2 d2 = d1 * 2.0;
+          vec2 d3 = d1 * 3.0;
+          vec2 d4 = d1 * 4.0;
+          sum += w1 * (texture2D(uBloomTex, vUv + d1 / uResolution).rgb + texture2D(uBloomTex, vUv - d1 / uResolution).rgb);
+          sum += w2 * (texture2D(uBloomTex, vUv + d2 / uResolution).rgb + texture2D(uBloomTex, vUv - d2 / uResolution).rgb);
+          sum += w3 * (texture2D(uBloomTex, vUv + d3 / uResolution).rgb + texture2D(uBloomTex, vUv - d3 / uResolution).rgb);
+          sum += w4 * (texture2D(uBloomTex, vUv + d4 / uResolution).rgb + texture2D(uBloomTex, vUv - d4 / uResolution).rgb);
+          gl_FragColor = vec4(sum, 1.0);
+        }
+      `,
+      uniforms: {
+        uBloomTex: { value: null },
+        uResolution: { value: new THREE.Vector2() },
+        uIsVertical: { value: false },
+      },
+    });
+
+    // Composite: scene + 3 bloom levels (Alche weights + 1.3x boost)
+    const bloomCompositeMat = new THREE.ShaderMaterial({
+      vertexShader: bloomVertShader,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform sampler2D uSceneTex;
+        uniform sampler2D uBloom0;
+        uniform sampler2D uBloom1;
+        uniform sampler2D uBloom2;
+        varying vec2 vUv;
+        void main() {
+          vec3 col = texture2D(uSceneTex, vUv).rgb;
+          col += texture2D(uBloom0, vUv).rgb * 0.3;
+          col += texture2D(uBloom1, vUv).rgb * 0.5;
+          col += texture2D(uBloom2, vUv).rgb * 0.8;
+          col *= 1.15;
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `,
+      uniforms: {
+        uSceneTex: { value: null },
+        uBloom0: { value: null },
+        uBloom1: { value: null },
+        uBloom2: { value: null },
+      },
+    });
+
+    function runBloomPass(mat, target) {
+      fluidQuad.material = mat;
+      renderer.setRenderTarget(target);
+      renderer.render(fluidScene, fluidOrtho);
+    }
+
+    function runBlurLevel(input, hTarget, vTarget, w, h) {
+      bloomBlurMat.uniforms.uBloomTex.value = input.texture;
+      bloomBlurMat.uniforms.uResolution.value.set(w, h);
+      bloomBlurMat.uniforms.uIsVertical.value = false;
+      runBloomPass(bloomBlurMat, hTarget);
+      bloomBlurMat.uniforms.uBloomTex.value = hTarget.texture;
+      bloomBlurMat.uniforms.uIsVertical.value = true;
+      runBloomPass(bloomBlurMat, vTarget);
+    }
 
     // ── Mouse + animation ──
     let mx = 0, my = 0, tmx = 0, tmy = 0;
@@ -1045,29 +1361,56 @@
         envCaptured = true;
       }
 
-      // Two-pass rendering: background RT then final
+      // Two-pass rendering: background RT (for glass refraction) then scene RT
       logoGroup.visible = false;
       renderer.setRenderTarget(backgroundRT);
       renderer.render(scene, camera);
-      renderer.setRenderTarget(null);
       logoGroup.visible = true;
 
+      // Render full scene to sceneRT (not screen)
+      renderer.setRenderTarget(sceneRT);
       renderer.render(scene, camera);
+
+      // Bloom: bright extraction
+      bloomBrightMat.uniforms.uSceneTex.value = sceneRT.texture;
+      runBloomPass(bloomBrightMat, bloomBrightRT);
+
+      // Bloom: 3-level gaussian blur (progressive downsample)
+      runBlurLevel(bloomBrightRT, bloom0H, bloom0V, bw1, bh1);
+      runBlurLevel(bloom0V, bloom1H, bloom1V, bw2, bh2);
+      runBlurLevel(bloom1V, bloom2H, bloom2V, bw3, bh3);
+
+      // Composite: scene + bloom → screen
+      bloomCompositeMat.uniforms.uSceneTex.value = sceneRT.texture;
+      bloomCompositeMat.uniforms.uBloom0.value = bloom0V.texture;
+      bloomCompositeMat.uniforms.uBloom1.value = bloom1V.texture;
+      bloomCompositeMat.uniforms.uBloom2.value = bloom2V.texture;
+      runBloomPass(bloomCompositeMat, null);
     }
 
     requestAnimationFrame(animate);
-    setTimeout(() => document.getElementById('loader').classList.add('hidden'), 5000);
+    setTimeout(() => { if (window._dismissLoader) window._dismissLoader(); }, 5000);
 
     addEventListener('resize', () => {
       camera.aspect = innerWidth / innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(innerWidth, innerHeight);
 
-      // Update render target size
+      // Update render target sizes
       const newW = Math.floor(innerWidth * Math.min(devicePixelRatio, 2));
       const newH = Math.floor(innerHeight * Math.min(devicePixelRatio, 2));
       backgroundRT.setSize(newW, newH);
+      sceneRT.setSize(newW, newH);
       glassMaterial.uniforms.uTrnsWinRes.value.set(newW, newH);
+
+      // Bloom RT resize
+      bw1 = Math.floor(newW / 4); bh1 = Math.floor(newH / 4);
+      bw2 = Math.floor(newW / 8); bh2 = Math.floor(newH / 8);
+      bw3 = Math.floor(newW / 16); bh3 = Math.floor(newH / 16);
+      bloomBrightRT.setSize(bw1, bh1);
+      bloom0H.setSize(bw1, bh1); bloom0V.setSize(bw1, bh1);
+      bloom1H.setSize(bw2, bh2); bloom1V.setSize(bw2, bh2);
+      bloom2H.setSize(bw3, bh3); bloom2V.setSize(bw3, bh3);
 
     });
   </script>
