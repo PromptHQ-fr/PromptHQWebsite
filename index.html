@@ -322,7 +322,7 @@
     // Quad-tree subdivision: recursively split a rectangle into 4 children
     function buildQuadTree(x, y, w, h, depth, maxDepth, tiles) {
       // Random split probability decreases with depth
-      const splitProb = [0.85, 0.6, 0.35, 0.2];
+      const splitProb = [0.5, 0.3, 0.15, 0.05];
       if (depth >= maxDepth || Math.random() > (splitProb[depth] || 0.1)) {
         // Leaf node → emit a tile
         tiles.push({ x, y, w, h });
@@ -432,7 +432,7 @@
       }
     `;
 
-    // Tile fragment shader — Pattern 1: blue/purple noise + halftone + fluid emission
+    // Tile fragment shader — 3 animated patterns + halftone + fluid emission
     const tileFragShader = /* glsl */`
       varying vec2 vUv;
       varying vec2 vGlobalUv;
@@ -442,17 +442,48 @@
       uniform sampler2D uNoiseTex;
       uniform float uTime;
 
+      vec3 hsv2rgb(vec3 hsv) {
+        return ((clamp(abs(fract(hsv.x + vec3(0, 2, 1) / 3.) * 6. - 3.) - 1., 0., 1.) - 1.) * hsv.y + 1.) * hsv.z;
+      }
+
       void main() {
-        // Sample noise — higher frequency so individual texels are visible as pixels
+        // Animated noise UV — scroll direction per tile based on vInstanceID
         vec2 noiseUv = vGlobalUv * 4.0 + vInstanceID.xy * 0.3;
+        // Some tiles scroll horizontally, others vertically
+        float scrollDir = step(0.5, vInstanceID.w);
+        noiseUv.x += uTime * 0.08 * scrollDir * (vInstanceID.x - 0.5) * 2.0;
+        noiseUv.y += uTime * 0.08 * (1.0 - scrollDir) * (vInstanceID.y - 0.5) * 2.0;
+
         vec4 noise = texture2D(uNoiseTex, noiseUv);
 
-        // Pattern 1: Blue/purple noise (Alche-style) — hard thresholds for crisp pixels
+        // Select pattern type: 3 patterns split by vInstanceID.x
+        float patternId = floor(vInstanceID.x * 3.0); // 0, 1, or 2
+
         vec3 faceColor = vec3(0.0);
-        faceColor.r += step(0.5, noise.x);
-        faceColor.g += step(0.3, noise.y);
-        faceColor.b += step(0.1, noise.z);
-        faceColor *= vec3(0.3, 0.4, 0.6) * 2.0;
+
+        // Brand colors: woodsmoke #F82F02, scarlet #FF9054, jaffa #FFC0A4
+        vec3 woodsmoke = vec3(0.973, 0.184, 0.008); // #F82F02
+        vec3 scarlet   = vec3(1.0, 0.565, 0.329);   // #FF9054
+        vec3 jaffa     = vec3(1.0, 0.753, 0.643);   // #FFC0A4
+
+        if (patternId < 1.0) {
+          // Pattern 1: Orange noise
+          faceColor.r += step(0.3, noise.x);
+          faceColor.g += step(0.5, noise.y);
+          faceColor.b += step(0.7, noise.z);
+          faceColor *= woodsmoke;
+        } else if (patternId < 2.0) {
+          // Pattern 2: Binary red/black grid
+          float w = fract(noise.w * 9.0);
+          w = step(0.5, w);
+          faceColor = mix(vec3(0.0), woodsmoke, w);
+        } else {
+          // Pattern 3: Red gradient (woodsmoke → scarlet)
+          vec3 c = woodsmoke;
+          c = mix(c, scarlet, step(0.5, noise.w));
+          c = mix(c, woodsmoke * 1.2, step(0.7, noise.y));
+          faceColor = c;
+        }
 
         // Dim to keep tiles as background
         faceColor *= 0.15 + vInstanceID.z * 0.1;
@@ -805,7 +836,7 @@
 
       const dist = camera.position.z + 3;
       const visH = 2 * Math.tan(camera.fov * Math.PI / 360) * dist;
-      const planeW = visH * camera.aspect * 0.85;
+      const planeW = Math.min(visH * camera.aspect * 0.85, 10);
       const plane = new THREE.Mesh(
         new THREE.PlaneGeometry(planeW, planeW / 4),
         new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false })
@@ -940,7 +971,7 @@
       const returnForce = Math.min(0.15 * deltaTime, 1.0);
       logoGroup.quaternion.slerp(identityQuat, returnForce);
       // Continuous Z-axis auto-spin (always turning on itself)
-      autoRotQuat.setFromAxisAngle(autoSpinAxis, 0.05 * deltaTime);
+      autoRotQuat.setFromAxisAngle(autoSpinAxis, 0.065 * deltaTime);
       logoGroup.quaternion.premultiply(autoRotQuat);
       // Gentle vertical float
       logoGroup.position.y = Math.sin(elapsed * 0.4) * 0.06;

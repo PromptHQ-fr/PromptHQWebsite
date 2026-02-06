@@ -1,4 +1,6 @@
-// ============================================
+. Animated pattern cycling — use uTime to slowly shift noise UV,
+  making the colors flow across tiles like data streams. Some tiles
+  scroll horizontally, others vertically, based on vInstanceID.// ============================================
 // Pattern 1: Blue/Purple noise-based coloring
 // ============================================
 
