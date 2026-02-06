@@ -183,8 +183,6 @@
       const sub = document.getElementById('loader-sub');
       const scanlines = document.getElementById('scanlines');
       const resolved = new Array(target.length).fill(false);
-      let started = false;
-
       // Build initial random chars
       function randomChar() { return glitchChars[Math.floor(Math.random() * glitchChars.length)]; }
 
@@ -229,7 +227,6 @@
       setTimeout(() => {
         scanlines.classList.add('active');
         sub.classList.add('visible');
-        started = true;
         setTimeout(resolveNext, 300);
       }, 200);
 
@@ -508,8 +505,7 @@
 
     // Quaternion rotation state
     const mouseRotQuat = new THREE.Quaternion();
-    const autoRotQuat = new THREE.Quaternion();
-    const autoSpinTarget = new THREE.Quaternion(); // cumulative auto-spin target
+    const autoSpinTarget = new THREE.Quaternion();
     const autoSpinAxis = new THREE.Vector3(0, 0, 1);
     const tempEuler = new THREE.Euler(0, 0, 0);
     let hoverVelX = 0, hoverVelY = 0;
@@ -1146,7 +1142,7 @@
 
       const dist = camera.position.z + 3;
       const visH = 2 * Math.tan(camera.fov * Math.PI / 360) * dist;
-      const titleScale = isMobile ? 0.85 * 1.15 : 0.85;
+      const titleScale = isMobile ? 0.9775 : 0.85;
       const planeW = Math.min(visH * camera.aspect * titleScale, 10);
       const plane = new THREE.Mesh(
         new THREE.PlaneGeometry(planeW, planeW / 4),
@@ -1168,17 +1164,9 @@
     dl.position.set(0, 5, 5); scene.add(dl);
 
     // ── Bloom shaders & materials ──
-    const bloomVertShader = /* glsl */`
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = vec4(position.xy, 0.0, 1.0);
-      }
-    `;
-
     // Bright extraction (Alche-style: threshold + multiply)
     const bloomBrightMat = new THREE.ShaderMaterial({
-      vertexShader: bloomVertShader,
+      vertexShader: fluidVertShader,
       fragmentShader: /* glsl */`
         precision highp float;
         uniform sampler2D uSceneTex;
@@ -1198,7 +1186,7 @@
 
     // Separable Gaussian blur (5-tap, offset * 2.0 for wider spread)
     const bloomBlurMat = new THREE.ShaderMaterial({
-      vertexShader: bloomVertShader,
+      vertexShader: fluidVertShader,
       fragmentShader: /* glsl */`
         precision highp float;
         uniform sampler2D uBloomTex;
@@ -1226,9 +1214,9 @@
       },
     });
 
-    // Composite: scene + 3 bloom levels (Alche weights + 1.3x boost)
+    // Composite: scene + 3 bloom levels (Alche weights + uBoost)
     const bloomCompositeMat = new THREE.ShaderMaterial({
-      vertexShader: bloomVertShader,
+      vertexShader: fluidVertShader,
       fragmentShader: /* glsl */`
         precision highp float;
         uniform sampler2D uSceneTex;
@@ -1272,7 +1260,7 @@
     }
 
     // ── Mouse + animation ──
-    let mx = 0, my = 0, tmx = 0, tmy = 0;
+    let tmx = 0, tmy = 0;
     let prevTmx = 0, prevTmy = 0;
     let mouseSpeed = 0, mouseVelocity = 0;
 
@@ -1313,9 +1301,6 @@
       mouseVelocity *= 0.95;
       mouseVelocity = Math.min(mouseVelocity, 1.0);
 
-      mx += (tmx - mx) * 0.04;
-      my += (tmy - my) * 0.04;
-
       // 2. Update glass interactive refraction uniforms
       glassMaterial.uniforms.uMousePos.value.set(
         (tmx + 1.0) * 0.5,
@@ -1337,9 +1322,8 @@
       prevPointerPos.copy(pointerPos);
 
       // 4. Run fluid simulation passes
-      const fluidDt = deltaTime;
-      velocityMat.uniforms.dt.value = fluidDt;
-      advectMat.uniforms.dt.value = fluidDt;
+      velocityMat.uniforms.dt.value = deltaTime;
+      advectMat.uniforms.dt.value = deltaTime;
 
       // Pass 1: Curl
       curlMat.uniforms.dataTex.value = fluidRT_A.texture;
@@ -1376,8 +1360,6 @@
       // Update fluid texture uniforms for downstream shaders
       tileMat.uniforms.uFluidsTex.value = fluidRT_A.texture;
       glassMaterial.uniforms.uFluidsTex.value = fluidRT_A.texture;
-
-      renderer.setRenderTarget(null);
 
       // 5. Quaternion-based logo rotation
       // Advance auto-spin target (always accumulating, never reset)
