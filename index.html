@@ -284,10 +284,11 @@
     // Quaternion rotation state
     const mouseRotQuat = new THREE.Quaternion();
     const autoRotQuat = new THREE.Quaternion();
-    const identityQuat = new THREE.Quaternion();
+    const autoSpinTarget = new THREE.Quaternion(); // cumulative auto-spin target
     const autoSpinAxis = new THREE.Vector3(0, 0, 1);
     const tempEuler = new THREE.Euler(0, 0, 0);
-    let hoverVelX = 0, hoverVelY = 0; // angular velocity from mouse
+    let hoverVelX = 0, hoverVelY = 0;
+    let autoSpinAngle = 0;
     let prevAnimTime = 0;
 
     const pmrem = new THREE.PMREMGenerator(renderer);
@@ -316,6 +317,20 @@
     noiseTex.wrapS = noiseTex.wrapT = THREE.RepeatWrapping;
     noiseTex.magFilter = THREE.NearestFilter;
     noiseTex.minFilter = THREE.NearestFilter;
+
+    // ── Logo texture for tile overlay (white text on transparent) ──
+    const logoCanvas = document.createElement('canvas');
+    logoCanvas.width = 1024; logoCanvas.height = 256;
+    const logoCtx = logoCanvas.getContext('2d');
+    logoCtx.clearRect(0, 0, 1024, 256);
+    logoCtx.fillStyle = '#ffffff';
+    logoCtx.textAlign = 'center';
+    logoCtx.textBaseline = 'middle';
+    logoCtx.font = '700 180px StackSansText, system-ui, sans-serif';
+    logoCtx.fillText('PromptHQ', 512, 128);
+    const logoTileTex = new THREE.CanvasTexture(logoCanvas);
+    logoTileTex.wrapS = logoTileTex.wrapT = THREE.RepeatWrapping;
+    logoTileTex.minFilter = THREE.LinearFilter;
 
     // ── BGQuadTree — Instanced cube tiles on a cylinder ──
 
@@ -404,7 +419,7 @@
         float gap = 0.92;
         float tileW = aScale.x * gap;
         float tileH = aScale.y * gap;
-        float tileDepth = min(aScale.x, aScale.y) * 0.3; // depth proportional to smallest dim
+        float tileDepth = min(aScale.x, aScale.y) * 0.8; // depth proportional to smallest dim
 
         localV.x *= tileW;
         localV.y *= tileH;
@@ -440,11 +455,8 @@
       varying vec4 vInstanceID;
       uniform sampler2D uFluidsTex;
       uniform sampler2D uNoiseTex;
+      uniform sampler2D uLogoTex;
       uniform float uTime;
-
-      vec3 hsv2rgb(vec3 hsv) {
-        return ((clamp(abs(fract(hsv.x + vec3(0, 2, 1) / 3.) * 6. - 3.) - 1., 0., 1.) - 1.) * hsv.y + 1.) * hsv.z;
-      }
 
       void main() {
         // Animated noise UV — scroll direction per tile based on vInstanceID
@@ -488,6 +500,53 @@
         // Dim to keep tiles as background
         faceColor *= 0.15 + vInstanceID.z * 0.1;
 
+        // Logo overlay — 3 display modes spanning across tiles (Alche-style)
+        float logoMode = floor(vInstanceID.y * 3.0); // 0, 1, or 2
+        vec2 logoUv = vec2(0.0);
+        float aspect = 1024.0 / 256.0; // logo texture aspect ratio
+
+        if (logoMode < 1.0) {
+          // Mode 0: Tiled scrolling — rows shift with sin()
+          logoUv = vGlobalUv;
+          logoUv -= 0.5;
+          logoUv.y *= aspect;
+          logoUv += 0.5;
+          vec2 tileUv = logoUv * 2.0;
+          tileUv.x += sin(floor(tileUv.y) * 3.0 + uTime * 0.5) * 0.15;
+          logoUv = fract(tileUv) * 1.3;
+        } else if (logoMode < 2.0) {
+          // Mode 1: Single horizontal scroll
+          logoUv = vGlobalUv;
+          logoUv -= 0.5;
+          logoUv.y *= aspect;
+          logoUv *= 1.1;
+          logoUv += 0.5;
+          vec2 tileUv = logoUv;
+          tileUv.x += uTime * 0.06;
+          logoUv = fract(tileUv);
+        } else {
+          // Mode 2: Vertical scroll per instance
+          logoUv = vUv;
+          logoUv -= 0.5;
+          logoUv.x /= aspect;
+          logoUv += 0.5;
+          logoUv.y -= uTime * 0.3 * vInstanceID.x;
+          logoUv.y = fract(logoUv.y);
+          logoUv -= 0.5;
+          logoUv *= 1.3 + vInstanceID.z * 3.0;
+          logoUv += 0.5;
+          logoUv.x -= 0.38;
+          if (logoUv.x > 0.24 || logoUv.x < 0.0 || logoUv.y > 1.0 || logoUv.y < 0.0) {
+            logoUv = vec2(0.0);
+          }
+        }
+
+        vec4 logo = texture2D(uLogoTex, logoUv);
+        float logoW = step(0.5, logo.a) * step(0.0, logoUv.y) * step(logoUv.y, 1.0);
+        // Flicker: per-tile random frequency + sin(uTime)
+        float flicker = step(0.3, sin(uTime * (2.0 + vInstanceID.w * 8.0) + vInstanceID.x * 6.28));
+        faceColor += logoW * 0.25 * flicker;
+
         // Per-tile vignette
         float tileVignette = smoothstep(1.9, 0.1, length((vUv - 0.5) * 2.0));
         faceColor *= tileVignette;
@@ -519,6 +578,7 @@
         uScale: { value: new THREE.Vector3(14, 10, 1) },
         uFluidsTex: { value: null },
         uNoiseTex: { value: noiseTex },
+        uLogoTex: { value: logoTileTex },
         uTime: { value: 0 },
       },
       side: THREE.DoubleSide,
@@ -956,6 +1016,9 @@
       renderer.setRenderTarget(null);
 
       // 5. Quaternion-based logo rotation
+      // Advance auto-spin target (always accumulating, never reset)
+      autoSpinAngle += 0.085 * deltaTime;
+      autoSpinTarget.setFromAxisAngle(autoSpinAxis, autoSpinAngle);
       // Accumulate mouse velocity as angular momentum
       hoverVelX -= dy * 0.03;
       hoverVelY += dx * 0.03;
@@ -967,12 +1030,9 @@
       tempEuler.set(hoverVelX, hoverVelY, 0);
       mouseRotQuat.setFromEuler(tempEuler);
       logoGroup.quaternion.premultiply(mouseRotQuat);
-      // Slerp toward identity (gentle return to neutral pose)
+      // Slerp toward the spinning target (not identity — preserves auto-spin)
       const returnForce = Math.min(0.15 * deltaTime, 1.0);
-      logoGroup.quaternion.slerp(identityQuat, returnForce);
-      // Continuous Z-axis auto-spin (always turning on itself)
-      autoRotQuat.setFromAxisAngle(autoSpinAxis, 0.065 * deltaTime);
-      logoGroup.quaternion.premultiply(autoRotQuat);
+      logoGroup.quaternion.slerp(autoSpinTarget, returnForce);
       // Gentle vertical float
       logoGroup.position.y = Math.sin(elapsed * 0.4) * 0.06;
 
