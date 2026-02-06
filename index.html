@@ -148,10 +148,10 @@
 
           // Mouse injection
           float pv = length(pointerVec);
-          float splatRadius = 0.01 + 0.1 * min(0.5, pv);
+          float splatRadius = 0.03 + 0.15 * min(1.0, pv);
           float dist = distance(uv, pointerPos);
           float splat = exp(-dist * dist / (splatRadius * splatRadius));
-          vel += pointerVec * splat * 30.0 * dt;
+          vel += pointerVec * splat * 80.0 * dt;
 
           gl_FragColor = vec4(vel, data.zw);
         }
@@ -314,6 +314,8 @@
     noiseCtx.putImageData(noiseData, 0, 0);
     const noiseTex = new THREE.CanvasTexture(noiseCanvas);
     noiseTex.wrapS = noiseTex.wrapT = THREE.RepeatWrapping;
+    noiseTex.magFilter = THREE.NearestFilter;
+    noiseTex.minFilter = THREE.NearestFilter;
 
     // ── BGQuadTree — Instanced cube tiles on a cylinder ──
 
@@ -338,7 +340,7 @@
     const baseCols = 8, baseRows = 6;
     for (let r = 0; r < baseRows; r++) {
       for (let c = 0; c < baseCols; c++) {
-        buildQuadTree(c / baseCols, r / baseRows, 1 / baseCols, 1 / baseRows, 0, 3, tiles);
+        buildQuadTree(c / baseCols, r / baseRows, 1 / baseCols, 1 / baseRows, 0, 2, tiles);
       }
     }
 
@@ -430,31 +432,49 @@
       }
     `;
 
-    // Tile fragment shader — minimal: dark face with subtle variation, bright edges
+    // Tile fragment shader — Pattern 1: blue/purple noise + halftone + fluid emission
     const tileFragShader = /* glsl */`
       varying vec2 vUv;
       varying vec2 vGlobalUv;
       varying float vSideFace;
       varying vec4 vInstanceID;
       uniform sampler2D uFluidsTex;
+      uniform sampler2D uNoiseTex;
+      uniform float uTime;
 
       void main() {
-        // Front face: dark with subtle color per-instance
-        vec3 faceColor = vec3(0.04, 0.045, 0.06);
-        faceColor += vInstanceID.x * 0.02;
+        // Sample noise — higher frequency so individual texels are visible as pixels
+        vec2 noiseUv = vGlobalUv * 4.0 + vInstanceID.xy * 0.3;
+        vec4 noise = texture2D(uNoiseTex, noiseUv);
 
-        // Per-tile vignette (Alche-style: darker at edges of each tile)
+        // Pattern 1: Blue/purple noise (Alche-style) — hard thresholds for crisp pixels
+        vec3 faceColor = vec3(0.0);
+        faceColor.r += step(0.5, noise.x);
+        faceColor.g += step(0.3, noise.y);
+        faceColor.b += step(0.1, noise.z);
+        faceColor *= vec3(0.3, 0.4, 0.6) * 2.0;
+
+        // Dim to keep tiles as background
+        faceColor *= 0.15 + vInstanceID.z * 0.1;
+
+        // Per-tile vignette
         float tileVignette = smoothstep(1.9, 0.1, length((vUv - 0.5) * 2.0));
         faceColor *= tileVignette;
 
-        // Side faces (edges between tiles): slightly brighter + fluid emission
+        // Side faces: fluid emission
         vec4 fluids = texture2D(uFluidsTex, vGlobalUv);
+        float fluidStrength = length(fluids.xy);
         vec3 sideColor = vec3(0.08, 0.09, 0.12);
-        sideColor += 0.8 * length(fluids.xy);
+        sideColor += 3.0 * fluidStrength;
 
         vec3 col = mix(sideColor, faceColor, vSideFace);
 
-        // Global vignette (fade towards edges of the whole cylinder)
+        // Halftone dots (CRT screen texture) — front faces only, sharp edges
+        float dotw = step(length(fract(vGlobalUv * 1800.0 * 0.23) - 0.5), 0.35);
+        dotw = mix(dotw, 1.0, 0.5) * 0.9;
+        col *= mix(1.0, dotw, vSideFace);
+
+        // Global vignette
         col *= smoothstep(0.55, 0.05, length(vGlobalUv - 0.5));
 
         gl_FragColor = vec4(col, 1.0);
@@ -467,6 +487,8 @@
       uniforms: {
         uScale: { value: new THREE.Vector3(14, 10, 1) },
         uFluidsTex: { value: null },
+        uNoiseTex: { value: noiseTex },
+        uTime: { value: 0 },
       },
       side: THREE.DoubleSide,
     });
@@ -474,77 +496,105 @@
     const tileMesh = new THREE.Mesh(tileGeo, tileMat);
     scene.add(tileMesh);
 
-    // ── Cylindrical grid with crosshairs ──
-    const gridVertShader = /* glsl */`
-      varying vec2 vUv;
+    // ── Crosshairs at tile intersections ──
+
+    // Collect unique corner positions from quad-tree tiles
+    const cornerSet = new Set();
+    const corners = [];
+    for (const t of tiles) {
+      const pts = [
+        [t.x, t.y], [t.x + t.w, t.y],
+        [t.x, t.y + t.h], [t.x + t.w, t.y + t.h],
+      ];
+      for (const [cx, cy] of pts) {
+        const key = cx.toFixed(6) + ',' + cy.toFixed(6);
+        if (!cornerSet.has(key)) {
+          cornerSet.add(key);
+          corners.push({ x: cx, y: cy });
+        }
+      }
+    }
+
+    // Instanced crosshair geometry (small plane per cross)
+    const crossBase = new THREE.PlaneGeometry(1, 1);
+    const crossGeo = new THREE.InstancedBufferGeometry();
+    crossGeo.index = crossBase.index;
+    crossGeo.attributes.position = crossBase.attributes.position;
+    crossGeo.attributes.uv = crossBase.attributes.uv;
+    crossGeo.attributes.normal = crossBase.attributes.normal;
+
+    const crossPositions = new Float32Array(corners.length * 2);
+    for (let i = 0; i < corners.length; i++) {
+      crossPositions[i * 2] = corners[i].x;
+      crossPositions[i * 2 + 1] = corners[i].y;
+    }
+    crossGeo.setAttribute('aCrossPos', new THREE.InstancedBufferAttribute(crossPositions, 2));
+    crossGeo.instanceCount = corners.length;
+
+    const crossVertShader = /* glsl */`
+      attribute vec2 aCrossPos; // corner position in 0..1 UV
       uniform vec3 uScale;
-      uniform float uTime;
+      varying vec2 vUv;
+
       #define PI 3.14159265359
 
-      void main() {
-        vec2 localPos = position.xy;
-        float theta = localPos.x * PI;
+      mat2 rotate(float rad) {
+        return mat2(cos(rad), sin(rad), -sin(rad), cos(rad));
+      }
 
-        vec3 pos = vec3(
-          sin(theta) * 0.5 * uScale.x,
-          localPos.y * uScale.y * 1.5,
-          -cos(theta) * uScale.x * 0.5
+      void main() {
+        vUv = uv;
+
+        // Corner in centered UV space
+        float uvX = aCrossPos.x - 0.5;
+        float uvY = aCrossPos.y - 0.5;
+        float theta = uvX * PI;
+        float radius = uScale.x * 0.5;
+
+        // Small cross plane scaled to ~0.15 units
+        vec3 localPos = position * 0.15;
+        // Rotate to be tangent to cylinder surface
+        localPos.xz *= rotate(-theta);
+
+        // Place on cylinder at tile front face depth
+        vec3 cylPos = vec3(
+          sin(theta) * radius,
+          uvY * uScale.y * 1.5,
+          -cos(theta) * radius
         );
 
+        vec3 pos = cylPos + localPos;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-        vUv = uv;
       }
     `;
 
-    const gridFragShader = /* glsl */`
+    const crossFragShader = /* glsl */`
       varying vec2 vUv;
-      uniform vec2 uGrid;
-      uniform float uTime;
-      uniform sampler2D uFluidsTex;
 
       void main() {
-        vec2 gridUv = vUv * uGrid;
-        gridUv.y += uTime * 0.03;
-
-        // Grid lines via fract
-        float lineThreshold = 0.45;
-        float lineX = smoothstep(lineThreshold, 0.5, abs(fract(gridUv.x) - 0.5));
-        float lineY = smoothstep(lineThreshold, 0.5, abs(fract(gridUv.y) - 0.5));
-        float line = max(lineX, lineY);
-
-        // Cross-hairs at intersections
-        vec2 cellUv = fract(gridUv) - 0.5;
-        float cW = 0.08;
-        float crossH = smoothstep(cW, 0.01, abs(cellUv.x)) * smoothstep(0.15, 0.0, abs(cellUv.y));
-        float crossV = smoothstep(cW, cW * 0.1, abs(cellUv.y)) * smoothstep(0.15, 0.0, abs(cellUv.x));
+        // Render + shape from UV
+        vec2 uv = vUv - 0.5;
+        float armW = 0.03; // arm thickness
+        float armL = 0.4;  // arm length
+        float crossH = step(abs(uv.y), armW) * step(abs(uv.x), armL);
+        float crossV = step(abs(uv.x), armW) * step(abs(uv.y), armL);
         float cross = max(crossH, crossV);
-
-        float alpha = line * 0.12 + cross * 0.25;
-
-        // Fluid effect: tint shift + brightness
-        vec4 fluids = texture2D(uFluidsTex, vUv);
-        vec3 col = vec3(1.0);
-        col.xy -= fluids.xy * 0.005;
-        col *= 1.0 + length(fluids.xy) * 0.8;
-
-        gl_FragColor = vec4(col, alpha);
+        if (cross < 0.5) discard;
+        gl_FragColor = vec4(1.0, 1.0, 1.0, 0.25);
       }
     `;
 
-    const gridMat = new THREE.ShaderMaterial({
-      vertexShader: gridVertShader,
-      fragmentShader: gridFragShader,
+    const crossMat = new THREE.ShaderMaterial({
+      vertexShader: crossVertShader,
+      fragmentShader: crossFragShader,
       uniforms: {
         uScale: { value: new THREE.Vector3(14, 10, 1) },
-        uGrid: { value: new THREE.Vector2(32, 24) },
-        uTime: { value: 0 },
-        uFluidsTex: { value: null },
       },
       transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
     });
-    scene.add(new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 64, 64), gridMat));
+    scene.add(new THREE.Mesh(crossGeo, crossMat));
 
     // ── Glass shader (Alche-style custom refraction) ──
     const glassVertexShader = /* glsl */`
@@ -604,7 +654,7 @@
 
         // Fluid micro-distortion on refraction UV
         vec4 fluids = texture2D(uFluidsTex, trnsUv);
-        trnsUv += fluids.xy * 0.001;
+        trnsUv += fluids.xy * 0.008;
         float fluidsLength = length(fluids.xy);
 
         // Mouse interactive refraction boost
@@ -671,7 +721,7 @@
 
         // Brightness boost + fluid boost
         c *= 1.15;
-        c *= 1.0 + fluidsLength * 0.3;
+        c *= 1.0 + fluidsLength * 2.0;
 
         gl_FragColor = vec4(c, 1.0);
       }
@@ -797,7 +847,7 @@
 
       logoGroup.scale.setScalar(1 - Math.pow(1 - Math.min(elapsed / ENTRANCE_DURATION, 1), 3));
 
-      gridMat.uniforms.uTime.value = elapsed;
+      tileMat.uniforms.uTime.value = elapsed;
 
       // 1. Smooth mouse + velocity tracking
       const dx = tmx - prevTmx;
@@ -828,7 +878,7 @@
       const scale = rawLen > 0.0001 ? boosted / rawLen : 0;
       pointerVec.x += pdx * scale;
       pointerVec.y += pdy * scale;
-      pointerVec.multiplyScalar(0.5); // decay per frame
+      pointerVec.multiplyScalar(0.7); // decay per frame
       prevPointerPos.copy(pointerPos);
 
       // 4. Run fluid simulation passes
@@ -869,7 +919,6 @@
       tmp = fluidRT_A; fluidRT_A = fluidRT_B; fluidRT_B = tmp;
 
       // Update fluid texture uniforms for downstream shaders
-      gridMat.uniforms.uFluidsTex.value = fluidRT_A.texture;
       tileMat.uniforms.uFluidsTex.value = fluidRT_A.texture;
       glassMaterial.uniforms.uFluidsTex.value = fluidRT_A.texture;
 
