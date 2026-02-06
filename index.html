@@ -61,6 +61,235 @@
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     document.body.appendChild(renderer.domElement);
 
+    // ── GPU Fluid Simulation (Navier-Stokes) ──
+    const FLUID_SIZE = 128;
+    const fluidOpts = {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat,
+      type: THREE.HalfFloatType,
+      depthBuffer: false,
+      stencilBuffer: false,
+    };
+    let fluidRT_A = new THREE.WebGLRenderTarget(FLUID_SIZE, FLUID_SIZE, fluidOpts);
+    let fluidRT_B = new THREE.WebGLRenderTarget(FLUID_SIZE, FLUID_SIZE, fluidOpts);
+    let curlRT = new THREE.WebGLRenderTarget(FLUID_SIZE, FLUID_SIZE, fluidOpts);
+
+    const fluidQuadGeo = new THREE.PlaneGeometry(2, 2);
+    const fluidOrtho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+    // Fluid pointer state
+    const pointerPos = new THREE.Vector2(0.5, 0.5);
+    const pointerVec = new THREE.Vector2(0, 0);
+    const prevPointerPos = new THREE.Vector2(0.5, 0.5);
+
+    // Common fluid vertex shader
+    const fluidVertShader = /* glsl */`
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = vec4(position.xy, 0.0, 1.0);
+      }
+    `;
+
+    // Pass 1: Curl (vorticity)
+    const curlMat = new THREE.ShaderMaterial({
+      vertexShader: fluidVertShader,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform sampler2D dataTex;
+        uniform vec2 dataSize;
+        varying vec2 vUv;
+        void main() {
+          vec2 fc = gl_FragCoord.xy;
+          float L = texture2D(dataTex, (fc - vec2(1.0, 0.0)) / dataSize).y;
+          float R = texture2D(dataTex, (fc + vec2(1.0, 0.0)) / dataSize).y;
+          float T = texture2D(dataTex, (fc + vec2(0.0, 1.0)) / dataSize).x;
+          float B = texture2D(dataTex, (fc - vec2(0.0, 1.0)) / dataSize).x;
+          float curl = (R - L) - (T - B);
+          gl_FragColor = vec4(curl * 0.5 + 0.5, 0.0, 0.0, 1.0);
+        }
+      `,
+      uniforms: {
+        dataTex: { value: null },
+        dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) },
+      },
+    });
+
+    // Pass 2: Velocity (vorticity confinement + mouse injection)
+    const velocityMat = new THREE.ShaderMaterial({
+      vertexShader: fluidVertShader,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform sampler2D dataTex;
+        uniform sampler2D curlTex;
+        uniform vec2 dataSize;
+        uniform vec2 pointerPos;
+        uniform vec2 pointerVec;
+        uniform float dt;
+        varying vec2 vUv;
+        void main() {
+          vec2 fc = gl_FragCoord.xy;
+          vec2 uv = fc / dataSize;
+          vec4 data = texture2D(dataTex, uv);
+          vec2 vel = data.xy;
+
+          // Vorticity confinement
+          float cL = texture2D(curlTex, (fc - vec2(1.0, 0.0)) / dataSize).x - 0.5;
+          float cR = texture2D(curlTex, (fc + vec2(1.0, 0.0)) / dataSize).x - 0.5;
+          float cT = texture2D(curlTex, (fc + vec2(0.0, 1.0)) / dataSize).x - 0.5;
+          float cB = texture2D(curlTex, (fc - vec2(0.0, 1.0)) / dataSize).x - 0.5;
+          float cC = texture2D(curlTex, uv).x - 0.5;
+
+          vec2 force = vec2(abs(cT) - abs(cB), abs(cR) - abs(cL));
+          float fLen = length(force);
+          force = fLen > 0.0001 ? force / fLen : vec2(0.0);
+          vel += force * cC * 0.15 * dt;
+
+          // Mouse injection
+          float pv = length(pointerVec);
+          float splatRadius = 0.01 + 0.1 * min(0.5, pv);
+          float dist = distance(uv, pointerPos);
+          float splat = exp(-dist * dist / (splatRadius * splatRadius));
+          vel += pointerVec * splat * 30.0 * dt;
+
+          gl_FragColor = vec4(vel, data.zw);
+        }
+      `,
+      uniforms: {
+        dataTex: { value: null },
+        curlTex: { value: null },
+        dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) },
+        pointerPos: { value: pointerPos },
+        pointerVec: { value: pointerVec },
+        dt: { value: 0.016 },
+      },
+    });
+
+    // Pass 3: Divergence (store in .w channel)
+    const divergenceMat = new THREE.ShaderMaterial({
+      vertexShader: fluidVertShader,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform sampler2D dataTex;
+        uniform vec2 dataSize;
+        varying vec2 vUv;
+        void main() {
+          vec2 fc = gl_FragCoord.xy;
+          vec2 uv = fc / dataSize;
+          vec4 data = texture2D(dataTex, uv);
+          float L = texture2D(dataTex, (fc - vec2(1.0, 0.0)) / dataSize).x;
+          float R = texture2D(dataTex, (fc + vec2(1.0, 0.0)) / dataSize).x;
+          float T = texture2D(dataTex, (fc + vec2(0.0, 1.0)) / dataSize).y;
+          float B = texture2D(dataTex, (fc - vec2(0.0, 1.0)) / dataSize).y;
+          float div = -0.5 * (R - L + T - B);
+          gl_FragColor = vec4(data.xy, 0.0, div);
+        }
+      `,
+      uniforms: {
+        dataTex: { value: null },
+        dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) },
+      },
+    });
+
+    // Pass 4: Pressure (Jacobi iteration)
+    const pressureMat = new THREE.ShaderMaterial({
+      vertexShader: fluidVertShader,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform sampler2D dataTex;
+        uniform vec2 dataSize;
+        varying vec2 vUv;
+        void main() {
+          vec2 fc = gl_FragCoord.xy;
+          vec2 uv = fc / dataSize;
+          vec4 data = texture2D(dataTex, uv);
+          float pL = texture2D(dataTex, (fc - vec2(1.0, 0.0)) / dataSize).z;
+          float pR = texture2D(dataTex, (fc + vec2(1.0, 0.0)) / dataSize).z;
+          float pT = texture2D(dataTex, (fc + vec2(0.0, 1.0)) / dataSize).z;
+          float pB = texture2D(dataTex, (fc - vec2(0.0, 1.0)) / dataSize).z;
+          float pressure = (pL + pR + pT + pB + data.w) * 0.25;
+          gl_FragColor = vec4(data.xy, pressure, data.w);
+        }
+      `,
+      uniforms: {
+        dataTex: { value: null },
+        dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) },
+      },
+    });
+
+    // Pass 5: Gradient Subtract
+    const gradSubMat = new THREE.ShaderMaterial({
+      vertexShader: fluidVertShader,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform sampler2D dataTex;
+        uniform vec2 dataSize;
+        varying vec2 vUv;
+        void main() {
+          vec2 fc = gl_FragCoord.xy;
+          vec2 uv = fc / dataSize;
+          vec4 data = texture2D(dataTex, uv);
+          vec2 vel = data.xy;
+          float pL = texture2D(dataTex, (fc - vec2(1.0, 0.0)) / dataSize).z;
+          float pR = texture2D(dataTex, (fc + vec2(1.0, 0.0)) / dataSize).z;
+          float pT = texture2D(dataTex, (fc + vec2(0.0, 1.0)) / dataSize).z;
+          float pB = texture2D(dataTex, (fc - vec2(0.0, 1.0)) / dataSize).z;
+          vel -= 0.5 * vec2(pR - pL, pT - pB);
+          gl_FragColor = vec4(vel, data.zw);
+        }
+      `,
+      uniforms: {
+        dataTex: { value: null },
+        dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) },
+      },
+    });
+
+    // Pass 6: Advect (Semi-Lagrangian)
+    const advectMat = new THREE.ShaderMaterial({
+      vertexShader: fluidVertShader,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform sampler2D dataTex;
+        uniform vec2 dataSize;
+        uniform float dt;
+        varying vec2 vUv;
+        void main() {
+          vec2 fc = gl_FragCoord.xy;
+          vec2 uv = fc / dataSize;
+          vec2 vel = texture2D(dataTex, uv).xy;
+          vec2 prevUv = (fc - vel * dt * dataSize) / dataSize;
+          vec4 result = texture2D(dataTex, prevUv);
+          result.xy *= 0.995; // dissipation
+          gl_FragColor = result;
+        }
+      `,
+      uniforms: {
+        dataTex: { value: null },
+        dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) },
+        dt: { value: 0.016 },
+      },
+    });
+
+    const fluidQuad = new THREE.Mesh(fluidQuadGeo, curlMat);
+    const fluidScene = new THREE.Scene();
+    fluidScene.add(fluidQuad);
+
+    function runFluidPass(mat, output) {
+      fluidQuad.material = mat;
+      renderer.setRenderTarget(output);
+      renderer.render(fluidScene, fluidOrtho);
+    }
+
+    // Quaternion rotation state
+    const mouseRotQuat = new THREE.Quaternion();
+    const autoRotQuat = new THREE.Quaternion();
+    const identityQuat = new THREE.Quaternion();
+    const autoSpinAxis = new THREE.Vector3(0, 0, 1);
+    const tempEuler = new THREE.Euler(0, 0, 0);
+    let hoverVelX = 0, hoverVelY = 0; // angular velocity from mouse
+    let prevAnimTime = 0;
+
     const pmrem = new THREE.PMREMGenerator(renderer);
     scene.environment = pmrem.fromScene(new RoomEnvironment()).texture;
     pmrem.dispose();
@@ -85,6 +314,165 @@
     noiseCtx.putImageData(noiseData, 0, 0);
     const noiseTex = new THREE.CanvasTexture(noiseCanvas);
     noiseTex.wrapS = noiseTex.wrapT = THREE.RepeatWrapping;
+
+    // ── BGQuadTree — Instanced cube tiles on a cylinder ──
+
+    // Quad-tree subdivision: recursively split a rectangle into 4 children
+    function buildQuadTree(x, y, w, h, depth, maxDepth, tiles) {
+      // Random split probability decreases with depth
+      const splitProb = [0.85, 0.6, 0.35, 0.2];
+      if (depth >= maxDepth || Math.random() > (splitProb[depth] || 0.1)) {
+        // Leaf node → emit a tile
+        tiles.push({ x, y, w, h });
+        return;
+      }
+      const hw = w / 2, hh = h / 2;
+      buildQuadTree(x,      y,      hw, hh, depth + 1, maxDepth, tiles);
+      buildQuadTree(x + hw, y,      hw, hh, depth + 1, maxDepth, tiles);
+      buildQuadTree(x,      y + hh, hw, hh, depth + 1, maxDepth, tiles);
+      buildQuadTree(x + hw, y + hh, hw, hh, depth + 1, maxDepth, tiles);
+    }
+
+    // Generate tiles over an 8×6 base grid
+    const tiles = [];
+    const baseCols = 8, baseRows = 6;
+    for (let r = 0; r < baseRows; r++) {
+      for (let c = 0; c < baseCols; c++) {
+        buildQuadTree(c / baseCols, r / baseRows, 1 / baseCols, 1 / baseRows, 0, 3, tiles);
+      }
+    }
+
+    // Build InstancedBufferGeometry from a BoxGeometry template
+    const tileBox = new THREE.BoxGeometry(1, 1, 1);
+    const tileGeo = new THREE.InstancedBufferGeometry();
+    tileGeo.index = tileBox.index;
+    tileGeo.attributes.position = tileBox.attributes.position;
+    tileGeo.attributes.normal = tileBox.attributes.normal;
+    tileGeo.attributes.uv = tileBox.attributes.uv;
+
+    const instanceCount = tiles.length;
+    const aPos = new Float32Array(instanceCount * 2);    // center in 0..1 UV space
+    const aScale = new Float32Array(instanceCount * 2);  // size in 0..1 UV space
+    const aRand = new Float32Array(instanceCount * 4);   // random per-instance IDs
+
+    for (let i = 0; i < instanceCount; i++) {
+      const t = tiles[i];
+      aPos[i * 2]     = t.x + t.w * 0.5;  // center X (0..1)
+      aPos[i * 2 + 1] = t.y + t.h * 0.5;  // center Y (0..1)
+      aScale[i * 2]     = t.w;
+      aScale[i * 2 + 1] = t.h;
+      aRand[i * 4]     = Math.random();
+      aRand[i * 4 + 1] = Math.random();
+      aRand[i * 4 + 2] = Math.random();
+      aRand[i * 4 + 3] = Math.random();
+    }
+
+    tileGeo.setAttribute('aPos',   new THREE.InstancedBufferAttribute(aPos, 2));
+    tileGeo.setAttribute('aScale', new THREE.InstancedBufferAttribute(aScale, 2));
+    tileGeo.setAttribute('aRand',  new THREE.InstancedBufferAttribute(aRand, 4));
+    tileGeo.instanceCount = instanceCount;
+
+    // Tile vertex shader — cylindrical wrapping matching the grid
+    const tileVertShader = /* glsl */`
+      attribute vec2 aPos;    // tile center in 0..1
+      attribute vec2 aScale;  // tile size in 0..1
+      attribute vec4 aRand;   // random per-instance
+
+      uniform vec3 uScale;    // same as grid: vec3(14, 10, 1)
+
+      varying vec2 vUv;
+      varying vec2 vGlobalUv;
+      varying float vSideFace;
+      varying vec4 vInstanceID;
+
+      #define PI 3.14159265359
+
+      void main() {
+        vUv = uv;
+        vInstanceID = aRand;
+
+        // Local vertex in box [-0.5..0.5]
+        vec3 localV = position;
+
+        // Detect side face: front/back faces have |normal.z| close to 1
+        vSideFace = step(0.5, abs(normal.z));
+
+        // Scale box to tile size (in 0..1 UV -> world units)
+        // Gap between tiles: shrink slightly (0.92 keeps a visible gap)
+        float gap = 0.92;
+        float tileW = aScale.x * gap;
+        float tileH = aScale.y * gap;
+        float tileDepth = min(aScale.x, aScale.y) * 0.3; // depth proportional to smallest dim
+
+        localV.x *= tileW;
+        localV.y *= tileH;
+        localV.z *= tileDepth;
+
+        // Position in 0..1 UV space -> -0.5..0.5 centered
+        float uvX = aPos.x + localV.x - 0.5;
+        float uvY = aPos.y + localV.y - 0.5;
+
+        // Global UV for later use
+        vGlobalUv = vec2(aPos.x + localV.x, aPos.y + localV.y);
+
+        // Cylindrical wrap (matching grid: theta = localPos.x * PI)
+        float theta = uvX * PI;
+        float radius = uScale.x * 0.5;
+        float depth = localV.z; // front/back offset
+
+        vec3 pos = vec3(
+          sin(theta) * (radius + depth),
+          uvY * uScale.y * 1.5,
+          -cos(theta) * (radius + depth)
+        );
+
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+      }
+    `;
+
+    // Tile fragment shader — minimal: dark face with subtle variation, bright edges
+    const tileFragShader = /* glsl */`
+      varying vec2 vUv;
+      varying vec2 vGlobalUv;
+      varying float vSideFace;
+      varying vec4 vInstanceID;
+      uniform sampler2D uFluidsTex;
+
+      void main() {
+        // Front face: dark with subtle color per-instance
+        vec3 faceColor = vec3(0.04, 0.045, 0.06);
+        faceColor += vInstanceID.x * 0.02;
+
+        // Per-tile vignette (Alche-style: darker at edges of each tile)
+        float tileVignette = smoothstep(1.9, 0.1, length((vUv - 0.5) * 2.0));
+        faceColor *= tileVignette;
+
+        // Side faces (edges between tiles): slightly brighter + fluid emission
+        vec4 fluids = texture2D(uFluidsTex, vGlobalUv);
+        vec3 sideColor = vec3(0.08, 0.09, 0.12);
+        sideColor += 0.8 * length(fluids.xy);
+
+        vec3 col = mix(sideColor, faceColor, vSideFace);
+
+        // Global vignette (fade towards edges of the whole cylinder)
+        col *= smoothstep(0.55, 0.05, length(vGlobalUv - 0.5));
+
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `;
+
+    const tileMat = new THREE.ShaderMaterial({
+      vertexShader: tileVertShader,
+      fragmentShader: tileFragShader,
+      uniforms: {
+        uScale: { value: new THREE.Vector3(14, 10, 1) },
+        uFluidsTex: { value: null },
+      },
+      side: THREE.DoubleSide,
+    });
+
+    const tileMesh = new THREE.Mesh(tileGeo, tileMat);
+    scene.add(tileMesh);
 
     // ── Cylindrical grid with crosshairs ──
     const gridVertShader = /* glsl */`
@@ -112,6 +500,7 @@
       varying vec2 vUv;
       uniform vec2 uGrid;
       uniform float uTime;
+      uniform sampler2D uFluidsTex;
 
       void main() {
         vec2 gridUv = vUv * uGrid;
@@ -132,7 +521,13 @@
 
         float alpha = line * 0.12 + cross * 0.25;
 
-        gl_FragColor = vec4(vec3(1.0), alpha);
+        // Fluid effect: tint shift + brightness
+        vec4 fluids = texture2D(uFluidsTex, vUv);
+        vec3 col = vec3(1.0);
+        col.xy -= fluids.xy * 0.005;
+        col *= 1.0 + length(fluids.xy) * 0.8;
+
+        gl_FragColor = vec4(col, alpha);
       }
     `;
 
@@ -143,6 +538,7 @@
         uScale: { value: new THREE.Vector3(14, 10, 1) },
         uGrid: { value: new THREE.Vector2(32, 24) },
         uTime: { value: 0 },
+        uFluidsTex: { value: null },
       },
       transparent: true,
       depthWrite: false,
@@ -173,6 +569,7 @@
       uniform vec2 uTrnsWinRes;
       uniform sampler2D uNoiseTex;
       uniform samplerCube uEnvMap;
+      uniform sampler2D uFluidsTex;
       uniform float uRoughness;
       uniform float uNoiseScale;
       uniform vec3 uMaterialColor;
@@ -204,6 +601,11 @@
         vec3 normal = normalize(vNormal);
         vec3 viewDir = normalize(-vViewPos);
         vec2 trnsUv = gl_FragCoord.xy / uTrnsWinRes;
+
+        // Fluid micro-distortion on refraction UV
+        vec4 fluids = texture2D(uFluidsTex, trnsUv);
+        trnsUv += fluids.xy * 0.001;
+        float fluidsLength = length(fluids.xy);
 
         // Mouse interactive refraction boost
         float mouseDist = distance(trnsUv, uMousePos);
@@ -267,8 +669,9 @@
         vec3 envColor = textureCube(uEnvMap, reflectDir).rgb;
         c = mix(c, envColor, F * 0.5) + c * F * 0.15;
 
-        // Brightness boost
+        // Brightness boost + fluid boost
         c *= 1.15;
+        c *= 1.0 + fluidsLength * 0.3;
 
         gl_FragColor = vec4(c, 1.0);
       }
@@ -291,6 +694,7 @@
         uTrnsWinRes: { value: new THREE.Vector2(rtW, rtH) },
         uNoiseTex: { value: noiseTex },
         uEnvMap: { value: cubeRT.texture },
+        uFluidsTex: { value: null },
         uRoughness: { value: 0.1 },
         uNoiseScale: { value: 9.0 },
         uMaterialColor: { value: new THREE.Vector3(255, 255, 255) },
@@ -388,6 +792,8 @@
       requestAnimationFrame(animate);
       if (!startTime) startTime = timestamp;
       const elapsed = (timestamp - startTime) * 0.001;
+      const deltaTime = prevAnimTime > 0 ? Math.min((timestamp - prevAnimTime) * 0.001, 0.05) : 0.016;
+      prevAnimTime = timestamp;
 
       logoGroup.scale.setScalar(1 - Math.pow(1 - Math.min(elapsed / ENTRANCE_DURATION, 1), 3));
 
@@ -399,7 +805,7 @@
       mouseSpeed = Math.sqrt(dx * dx + dy * dy);
       prevTmx = tmx; prevTmy = tmy;
       mouseVelocity += (mouseSpeed * 8.0 - mouseVelocity) * 0.1;
-      mouseVelocity *= 0.95; // decay
+      mouseVelocity *= 0.95;
       mouseVelocity = Math.min(mouseVelocity, 1.0);
 
       mx += (tmx - mx) * 0.04;
@@ -412,10 +818,82 @@
       );
       glassMaterial.uniforms.uMouseVelocity.value = mouseVelocity;
 
-      // 3. Logo rotation/float
-      logoGroup.rotation.z = elapsed * 0.05;
-      logoGroup.rotation.x = my * 0.2 + Math.sin(elapsed * 0.3) * 0.03;
-      logoGroup.rotation.y = mx * 0.2 + Math.cos(elapsed * 0.25) * 0.03;
+      // 3. Fluid pointer tracking
+      pointerPos.set((tmx + 1.0) * 0.5, (tmy + 1.0) * 0.5);
+      const pdx = pointerPos.x - prevPointerPos.x;
+      const pdy = pointerPos.y - prevPointerPos.y;
+      // Non-linear accumulation with pow(1.6)
+      const rawLen = Math.sqrt(pdx * pdx + pdy * pdy);
+      const boosted = Math.pow(rawLen + 1.0, 1.6) - 1.0;
+      const scale = rawLen > 0.0001 ? boosted / rawLen : 0;
+      pointerVec.x += pdx * scale;
+      pointerVec.y += pdy * scale;
+      pointerVec.multiplyScalar(0.5); // decay per frame
+      prevPointerPos.copy(pointerPos);
+
+      // 4. Run fluid simulation passes
+      const fluidDt = deltaTime;
+      velocityMat.uniforms.dt.value = fluidDt;
+      advectMat.uniforms.dt.value = fluidDt;
+
+      // Pass 1: Curl
+      curlMat.uniforms.dataTex.value = fluidRT_A.texture;
+      runFluidPass(curlMat, curlRT);
+
+      // Pass 2: Velocity (vorticity confinement + mouse)
+      velocityMat.uniforms.dataTex.value = fluidRT_A.texture;
+      velocityMat.uniforms.curlTex.value = curlRT.texture;
+      runFluidPass(velocityMat, fluidRT_B);
+      let tmp = fluidRT_A; fluidRT_A = fluidRT_B; fluidRT_B = tmp;
+
+      // Pass 3: Divergence
+      divergenceMat.uniforms.dataTex.value = fluidRT_A.texture;
+      runFluidPass(divergenceMat, fluidRT_B);
+      tmp = fluidRT_A; fluidRT_A = fluidRT_B; fluidRT_B = tmp;
+
+      // Pass 4: Pressure (4 Jacobi iterations)
+      for (let i = 0; i < 4; i++) {
+        pressureMat.uniforms.dataTex.value = fluidRT_A.texture;
+        runFluidPass(pressureMat, fluidRT_B);
+        tmp = fluidRT_A; fluidRT_A = fluidRT_B; fluidRT_B = tmp;
+      }
+
+      // Pass 5: Gradient subtract
+      gradSubMat.uniforms.dataTex.value = fluidRT_A.texture;
+      runFluidPass(gradSubMat, fluidRT_B);
+      tmp = fluidRT_A; fluidRT_A = fluidRT_B; fluidRT_B = tmp;
+
+      // Pass 6: Advect
+      advectMat.uniforms.dataTex.value = fluidRT_A.texture;
+      runFluidPass(advectMat, fluidRT_B);
+      tmp = fluidRT_A; fluidRT_A = fluidRT_B; fluidRT_B = tmp;
+
+      // Update fluid texture uniforms for downstream shaders
+      gridMat.uniforms.uFluidsTex.value = fluidRT_A.texture;
+      tileMat.uniforms.uFluidsTex.value = fluidRT_A.texture;
+      glassMaterial.uniforms.uFluidsTex.value = fluidRT_A.texture;
+
+      renderer.setRenderTarget(null);
+
+      // 5. Quaternion-based logo rotation
+      // Accumulate mouse velocity as angular momentum
+      hoverVelX -= dy * 0.03;
+      hoverVelY += dx * 0.03;
+      // Friction decay — 0.35 base: retains ~35% after 1s (strong inertia)
+      const friction = Math.pow(0.35, deltaTime);
+      hoverVelX *= friction;
+      hoverVelY *= friction;
+      // Apply incremental rotation from mouse velocity this frame
+      tempEuler.set(hoverVelX, hoverVelY, 0);
+      mouseRotQuat.setFromEuler(tempEuler);
+      logoGroup.quaternion.premultiply(mouseRotQuat);
+      // Slerp toward identity (gentle return to neutral pose)
+      const returnForce = Math.min(0.15 * deltaTime, 1.0);
+      logoGroup.quaternion.slerp(identityQuat, returnForce);
+      // Continuous Z-axis auto-spin (always turning on itself)
+      autoRotQuat.setFromAxisAngle(autoSpinAxis, 0.05 * deltaTime);
+      logoGroup.quaternion.premultiply(autoRotQuat);
+      // Gentle vertical float
       logoGroup.position.y = Math.sin(elapsed * 0.4) * 0.06;
 
       // Capture environment cubemap once (after first frame setup)
