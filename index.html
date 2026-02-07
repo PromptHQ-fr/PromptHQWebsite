@@ -1277,7 +1277,9 @@
     });
 
     // Touch support for mobile
-    addEventListener('touchstart', e => { e.preventDefault(); }, { passive: false });
+    addEventListener('touchstart', e => {
+      if (!e.target.closest('a, button')) e.preventDefault();
+    }, { passive: false });
     addEventListener('touchmove', e => {
       e.preventDefault();
       const t = e.touches[0];
