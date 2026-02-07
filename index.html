@@ -124,6 +124,7 @@
       width: 24px;
       height: 24px;
       fill: currentColor;
+      animation: glitch 1s linear infinite;
     }
     .discord-desc {
       max-width: 280px;
@@ -135,6 +136,55 @@
       margin-top: 4px;
     }
     .discord-join:hover { color: #fff; }
+    .discord-glitch {
+      position: relative;
+      display: inline-block;
+      animation: glitch 1s linear infinite;
+    }
+    .discord-glitch:before,
+    .discord-glitch:after {
+      content: attr(title);
+      position: absolute;
+      left: 0;
+    }
+    .discord-glitch:before {
+      animation: glitchTop 1s linear infinite;
+      clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%);
+    }
+    .discord-glitch:after {
+      animation: glitchBottom 1.5s linear infinite;
+      clip-path: polygon(0 67%, 100% 67%, 100% 100%, 0 100%);
+    }
+    @keyframes glitch {
+      0%,1% { transform: translate(0,0) skew(0deg); }
+      2% { transform: translate(2px,0) skew(0deg); }
+      4% { transform: translate(-2px,0) skew(0deg); }
+      5%,59% { transform: translate(0,0) skew(0deg); }
+      60% { transform: translate(-2px,0) skew(0deg); }
+      62% { transform: translate(0,0) skew(5deg); }
+      64% { transform: translate(2px,0) skew(0deg); }
+      65%,100% { transform: translate(0,0) skew(0deg); }
+    }
+    @keyframes glitchTop {
+      0%,1% { transform: translate(0,0); }
+      2% { transform: translate(2px,-2px); }
+      4% { transform: translate(-2px,2px); }
+      5%,59% { transform: translate(0,0); }
+      60% { transform: translate(-2px,2px); }
+      62% { transform: translate(13px,-1px) skew(-13deg); }
+      64% { transform: translate(2px,-2px); }
+      65%,100% { transform: translate(0,0); }
+    }
+    @keyframes glitchBottom {
+      0%,1% { transform: translate(0,0); }
+      2% { transform: translate(-2px,0); }
+      4% { transform: translate(-2px,0); }
+      5%,59% { transform: translate(0,0); }
+      60% { transform: translate(-2px,0); }
+      62% { transform: translate(-22px,5px) skew(21deg); }
+      64% { transform: translate(-2px,0); }
+      65%,100% { transform: translate(0,0); }
+    }
     .discord-stats-row {
       display: flex;
       flex-direction: column;
@@ -154,6 +204,7 @@
       }
       .discord-desc { text-align: center; }
       .discord-stats-row { flex-direction: row; gap: 16px; }
+      .discord-widget { transform: scale(1.25); }
       .discord-stat { font-size: 13px; }
       .discord-join { font-size: 14px; }
       .discord-join svg { width: 16px; height: 16px; }
@@ -171,7 +222,7 @@
   <div class="discord-widget" id="discord-widget">
     <a href="https://discord.gg/xaBr8E235f" target="_blank" rel="noopener" class="discord-join">
       <svg viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
-      Join Discord
+      <span class="discord-glitch" title="Join Discord">Join Discord</span>
     </a>
     <div class="discord-desc">Rejoins la plus grosse communaut&eacute; de vibecoding francophone</div>
     <div class="discord-stats-row">
@@ -1118,7 +1169,7 @@
       const model = gltf.scene;
       const box = new THREE.Box3().setFromObject(model);
       const size = box.getSize(new THREE.Vector3());
-      model.scale.setScalar((isMobile ? 2.55 : 3.0) / Math.max(size.x, size.y, size.z));
+      model.scale.setScalar((isMobile ? 2.17 : 3.0) / Math.max(size.x, size.y, size.z));
       model.rotation.x = Math.PI / 2;
 
       const center = new THREE.Box3().setFromObject(model).getCenter(new THREE.Vector3());
@@ -1390,7 +1441,7 @@
       if (elapsed < 0.8) hoverVelY += 0.2 * deltaTime;
 
       // Accumulate mouse velocity as angular momentum
-      const rotSens = isMobile ? 0.09 : 0.03;
+      const rotSens = isMobile ? 0.09 : 0.024;
       hoverVelX -= dy * rotSens;
       hoverVelY += dx * rotSens;
       // Friction decay — 0.35 base: retains ~35% after 1s (strong inertia)
