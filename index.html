@@ -135,10 +135,25 @@
       margin-top: 4px;
     }
     .discord-join:hover { color: #fff; }
+    .discord-stats-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
 
     @media (max-width: 768px) {
       .loader-text { font-size: 20px; letter-spacing: 3px; }
       .loader-sub { font-size: 10px; letter-spacing: 2px; }
+      .discord-widget {
+        bottom: auto;
+        top: 72%;
+        right: 0;
+        left: 0;
+        align-items: center;
+        text-align: center;
+      }
+      .discord-desc { text-align: center; }
+      .discord-stats-row { flex-direction: row; gap: 16px; }
       .discord-stat { font-size: 13px; }
       .discord-join { font-size: 14px; }
       .discord-join svg { width: 16px; height: 16px; }
@@ -159,8 +174,10 @@
       Join Discord
     </a>
     <div class="discord-desc">Rejoins la plus grosse communaut&eacute; de vibecoding francophone</div>
-    <div class="discord-stat" id="stat-online" style="display:none"><span class="dot green"></span><span id="online-count"></span> online</div>
-    <div class="discord-stat" id="stat-members" style="display:none"><span class="dot grey"></span><span id="member-count"></span> members</div>
+    <div class="discord-stats-row">
+      <div class="discord-stat" id="stat-online" style="display:none"><span class="dot green"></span><span id="online-count"></span> online</div>
+      <div class="discord-stat" id="stat-members" style="display:none"><span class="dot grey"></span><span id="member-count"></span> members</div>
+    </div>
   </div>
   <script>
     fetch('https://discord.com/api/v10/invites/xaBr8E235f?with_counts=true')
