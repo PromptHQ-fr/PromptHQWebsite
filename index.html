@@ -1088,7 +1088,7 @@
         uNoiseTex: { value: noiseTex },
         uEnvMap: { value: cubeRT.texture },
         uFluidsTex: { value: null },
-        uRoughness: { value: 0.1 },
+        uRoughness: { value: isMobile ? 0.0 : 0.1 },
         uNoiseScale: { value: 9.0 },
         uMaterialColor: { value: new THREE.Vector3(255, 255, 255) },
         uMousePos: { value: new THREE.Vector2(0.5, 0.5) },
@@ -1375,8 +1375,9 @@
       autoSpinAngle += 0.085 * deltaTime;
       autoSpinTarget.setFromAxisAngle(autoSpinAxis, autoSpinAngle);
       // Accumulate mouse velocity as angular momentum
-      hoverVelX -= dy * 0.03;
-      hoverVelY += dx * 0.03;
+      const rotSens = isMobile ? 0.09 : 0.03;
+      hoverVelX -= dy * rotSens;
+      hoverVelY += dx * rotSens;
       // Friction decay — 0.35 base: retains ~35% after 1s (strong inertia)
       const friction = Math.pow(0.35, deltaTime);
       hoverVelX *= friction;
