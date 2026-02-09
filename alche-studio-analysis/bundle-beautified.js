@@ -31767,6 +31767,9 @@ class MainLogo extends Object3D {
     _logoScreenMesh;
     _tmpEuler;
     _mouseRotQua;
+    _isSpinning;
+    _spinProgress;
+    _spinDuration;
     _visionTrigger;
     _serviceInTrigger;
     _tweakPaneManager;
@@ -31789,7 +31792,7 @@ class MainLogo extends Object3D {
             uServiceRotate: {
                 value: 0
             }
-        }), this._mouseRotQua = new Quaternion$1, this._tmpEuler = new Euler$1, this._logoMesh = null, this._logoOutlineMeshBase = null, this._logoOutlineMeshLine = null, this._logoOutlineMeshContainer = new Object3D, this._logoOutlineMeshContainer.matrixAutoUpdate = !1, this._logoOutlineMeshContainer.matrixWorldAutoUpdate = !1, this._visionTrigger = null, this._serviceInTrigger = null, this._logoScreenMesh = null, this._currentSectionConfig = sectionRotationSettings.default, this._tweakPaneManager = TweakPaneManager.getInstance(), this._tweakPaneSectionManager = TweakPaneSectionManager.getInstance(), this._materialStore = new TweakPaneStore({
+        }), this._mouseRotQua = new Quaternion$1, this._tmpEuler = new Euler$1, this._isSpinning = !1, this._spinProgress = 0, this._spinDuration = .8, this._logoMesh = null, this._logoOutlineMeshBase = null, this._logoOutlineMeshLine = null, this._logoOutlineMeshContainer = new Object3D, this._logoOutlineMeshContainer.matrixAutoUpdate = !1, this._logoOutlineMeshContainer.matrixWorldAutoUpdate = !1, this._visionTrigger = null, this._serviceInTrigger = null, this._logoScreenMesh = null, this._currentSectionConfig = sectionRotationSettings.default, this._tweakPaneManager = TweakPaneManager.getInstance(), this._tweakPaneSectionManager = TweakPaneSectionManager.getInstance(), this._materialStore = new TweakPaneStore({
             roughness: .1,
             noiseScale: 9,
             color: {
@@ -31871,7 +31874,7 @@ class MainLogo extends Object3D {
             });
         gltfPrm.then(m => {
             const _ = m.scene.getObjectByName("Alche_A").geometry;
-            this._logoMesh = new Mesh(_, o), this._logoMesh.scale.setScalar(3), this.add(this._logoMesh), this._logoMesh.renderOrder = transparentRenderer1.renderOrder + 1;
+            this._logoMesh = new Mesh(_, o), this._logoMesh.name = "MainLogo", this._logoMesh.scale.setScalar(3), this.add(this._logoMesh), this._logoMesh.renderOrder = transparentRenderer1.renderOrder + 1, easyRaycaster.touchableObjects.push(this._logoMesh), easyRaycaster.addEventListener("click/MainLogo", () => { this.triggerSpin() });
             const v = m.scene.getObjectByName("Alche_Outline");
             this._logoOutlineMeshBase = new Mesh(_, c), this._logoOutlineMeshBase.matrixAutoUpdate = !1, this._logoOutlineMeshBase.renderOrder = 10, this._logoOutlineMeshContainer.add(this._logoOutlineMeshBase), this._logoOutlineMeshLine = new Mesh(v.geometry, u), this._logoOutlineMeshLine.matrixAutoUpdate = !1, this._logoOutlineMeshLine.renderOrder = 11, this._logoOutlineMeshContainer.add(this._logoOutlineMeshLine);
             const x = m.scene.getObjectByName("Alche_SideScreen");
@@ -31969,6 +31972,9 @@ class MainLogo extends Object3D {
             g = this._animator.get("worksRotate") || 0;
         this._tmpEuler.set(this._tmpEuler.x - u * m * (1 - g * .7), this._tmpEuler.y + c * m, 0), this._mouseRotQua.setFromEuler(this._tmpEuler)
     }
+    triggerSpin() {
+        this._isSpinning = !0, this._spinProgress = 0
+    }
     update(i) {
         if (this._animator.update(i.deltaTime), this._logoMesh === null || this._logoOutlineMeshBase === null || this._logoOutlineMeshLine === null) return;
         const o = 1 - i.deltaTime;
@@ -31978,6 +31984,15 @@ class MainLogo extends Object3D {
             p = lenis ? lerper.set("mainLogo_lenisVelocity", Math.max(Math.min(lenis.velocity, 30), -30), .5) : 0,
             m = new Quaternion$1().setFromAxisAngle(new Vector3$1(0, 1, 0), -i.deltaTime * c.baseRotationSpeed * u - p * c.scrollSpeedRotationFactor);
         this._logoMesh.quaternion.premultiply(this._mouseRotQua), this._logoMesh.quaternion.premultiply(m);
+        if (this._isSpinning) {
+            const _prevProg = this._spinProgress,
+                _prevT = _prevProg < .5 ? 2 * _prevProg * _prevProg : 1 - Math.pow(-2 * _prevProg + 2, 2) / 2;
+            this._spinProgress += i.deltaTime / this._spinDuration, this._spinProgress >= 1 && (this._spinProgress = 1, this._isSpinning = !1);
+            const _curT = this._spinProgress < .5 ? 2 * this._spinProgress * this._spinProgress : 1 - Math.pow(-2 * this._spinProgress + 2, 2) / 2,
+                _deltaAngle = (_curT - _prevT) * Math.PI * 2,
+                _spinQuat = new Quaternion$1().setFromAxisAngle(new Vector3$1(0, 1, 0), _deltaAngle);
+            this._logoMesh.quaternion.premultiply(_spinQuat)
+        }
         const g = c.returnToOriginForce * (1 - u * .8);
         if (this._logoMesh.quaternion.slerp(new Quaternion$1, i.deltaTime * g), this._commonUniforms.uVisionRotate.value = lerper.set("mainLogo_vision", this._visionTrigger?.progress || 0, .5), this._commonUniforms.uServiceIn.value = lerper.get("service_renderer")?.current || 0, this._commonUniforms.uServiceRotate.value = lerper.set("mainLogo_serviceRotate", this._serviceInTrigger?.progress || 0, 1), this._logoMesh.updateMatrixWorld(), this._logoOutlineMeshContainer.matrixWorld.copy(this._logoMesh.matrixWorld), !deviceManager.isSPLayout) {
             const _ = new Euler$1().setFromQuaternion(this._logoMesh.quaternion, "XYZ");

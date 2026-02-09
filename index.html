@@ -1353,6 +1353,13 @@
       tmy = -(t.clientY / innerHeight) * 2 + 1;
     }, { passive: false });
 
+    // Click = strong lateral impulse (like a fast flick)
+    addEventListener('pointerdown', e => {
+      if (e.target.closest('a, button, .discord-widget')) return;
+      if (!startTime || (performance.now() - startTime) * 0.001 < ENTRANCE_DURATION) return;
+      hoverVelY += 0.167;
+    });
+
     const ENTRANCE_DURATION = 2.0;
     let startTime = null;
 
@@ -1441,7 +1448,7 @@
       autoSpinAngle += 0.085 * deltaTime;
       autoSpinTarget.setFromAxisAngle(autoSpinAxis, autoSpinAngle);
       // Initial lateral spin impulse during entrance
-      if (elapsed < 0.8) hoverVelY += 0.2 * deltaTime;
+      if (elapsed < 0.8) hoverVelY += 0.25 * deltaTime;
 
       // Accumulate mouse velocity as angular momentum
       const rotSens = isMobile ? 0.09 : 0.024;
