@@ -76,7 +76,7 @@
     }
     .loader-sub.visible { opacity: 1; }
 
-    .discord-widget {
+    .widgets-container {
       position: fixed;
       bottom: 33%;
       right: max(160px, calc(50% - 920px));
@@ -84,15 +84,146 @@
       display: flex;
       flex-direction: column;
       align-items: flex-end;
-      gap: 8px;
+      gap: 28px;
       font-family: 'StackSansText', system-ui, sans-serif;
       transition: all 0.3s ease;
     }
     @media (max-width: 1400px) {
-      .discord-widget {
+      .widgets-container {
         bottom: 24px;
         right: 24px;
       }
+    }
+    .discord-widget, .newsletter-widget {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    .widget-divider {
+      width: 40px;
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+      align-self: flex-end;
+    }
+
+    /* Newsletter widget */
+    .nl-join {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 26px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.85);
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.3s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nl-join:hover { color: #F82F02; }
+    .nl-join svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.5;
+      animation: glitch 1s linear infinite;
+    }
+    .nl-glitch {
+      position: relative;
+      display: inline-block;
+      animation: glitch 1s linear infinite;
+    }
+    .nl-glitch:before,
+    .nl-glitch:after {
+      content: attr(data-text);
+      position: absolute;
+      left: 0;
+      pointer-events: none;
+    }
+    .nl-glitch:before {
+      animation: glitchTop 1s linear infinite;
+      clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%);
+    }
+    .nl-glitch:after {
+      animation: glitchBottom 1.5s linear infinite;
+      clip-path: polygon(0 67%, 100% 67%, 100% 100%, 0 100%);
+    }
+    .nl-desc {
+      max-width: 280px;
+      font-size: 15px;
+      font-weight: 400;
+      line-height: 1.5;
+      color: rgba(255,255,255,0.35);
+      text-align: right;
+      margin-top: 4px;
+    }
+    .nl-input-row {
+      display: flex;
+      align-items: stretch;
+      margin-top: 4px;
+      font-family: 'StackSansText', monospace;
+      width: 100%;
+    }
+    .nl-prompt {
+      font-size: 14px;
+      color: #F82F02;
+      padding: 10px 0 10px 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-right: none;
+      border-radius: 4px 0 0 4px;
+      background: rgba(255,255,255,0.03);
+      display: flex;
+      align-items: center;
+    }
+    .nl-input {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-left: none;
+      border-right: none;
+      padding: 10px 10px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.55);
+      flex: 1;
+      min-width: 0;
+      font-family: 'StackSansText', monospace;
+      outline: none;
+      width: 180px;
+      line-height: 1;
+    }
+    .nl-input::placeholder { color: rgba(255,255,255,0.55); }
+    .nl-input:focus { border-color: rgba(248,47,2,0.5); }
+    .nl-input:focus ~ .nl-submit { border-color: rgba(248,47,2,0.5); }
+    .nl-input-row:focus-within .nl-prompt { border-color: rgba(248,47,2,0.5); }
+    .nl-input-row:focus-within .nl-input { border-color: rgba(248,47,2,0.5); }
+    .nl-input-row:focus-within .nl-submit { border-color: rgba(248,47,2,0.5); }
+    .nl-submit {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-left: none;
+      border-radius: 0 4px 4px 0;
+      padding: 0 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      transition: background 0.3s;
+    }
+    .nl-submit:hover { background: rgba(248,47,2,0.1); }
+    .nl-submit svg {
+      width: 14px;
+      height: 14px;
+      stroke: rgba(255,255,255,0.5);
+      fill: none;
+      stroke-width: 2;
+      transition: stroke 0.3s;
+    }
+    .nl-submit:hover svg { stroke: #F82F02; }
+    .nl-status {
+      font-size: 13px;
+      color: #23a55a;
+      text-align: right;
+      display: none;
+      margin-top: 2px;
     }
     .discord-stat {
       display: flex;
@@ -197,21 +328,28 @@
     @media (max-width: 768px) {
       .loader-text { font-size: 20px; letter-spacing: 3px; }
       .loader-sub { font-size: 10px; letter-spacing: 2px; }
-      .discord-widget {
+      .widgets-container {
         bottom: auto;
-        top: 72%;
+        top: 60%;
         right: 0;
         left: 0;
         align-items: center;
         text-align: center;
+        transform: scale(1.25);
+        gap: 20px;
       }
-      .discord-desc { text-align: center; max-width: 260px; padding: 0 24px; }
+      .newsletter-widget, .discord-widget {
+        align-items: center;
+        text-align: center;
+      }
+      .discord-desc, .nl-desc { text-align: center; max-width: 260px; padding: 0 24px; font-size: 11px; }
       .discord-stats-row { flex-direction: row; gap: 16px; }
-      .discord-widget { transform: scale(1.25); }
       .discord-stat { font-size: 13px; }
-      .discord-join { font-size: 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 6px 14px; }
+      .discord-join, .nl-join { font-size: 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 6px 14px; }
       .discord-join svg { width: 16px; height: 16px; }
-      .discord-desc { font-size: 11px; }
+      .nl-join svg { width: 14px; height: 14px; }
+      .nl-input-row { transform: scale(0.85); }
+      .widget-divider { align-self: center; }
     }
   </style>
 </head>
@@ -222,15 +360,35 @@
     <div class="loader-sub" id="loader-sub">initializing</div>
   </div>
 
-  <div class="discord-widget" id="discord-widget">
-    <a href="https://discord.gg/prompthq" target="_blank" rel="noopener" class="discord-join">
-      <svg viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
-      <span class="discord-glitch" data-text="Join Discord">Join Discord</span>
-    </a>
-    <div class="discord-desc">Rejoins la plus grosse communaut&eacute; de vibecoding francophone</div>
-    <div class="discord-stats-row">
-      <div class="discord-stat" id="stat-online" style="display:none"><span class="dot green"></span><span id="online-count"></span> online</div>
-      <div class="discord-stat" id="stat-members" style="display:none"><span class="dot grey"></span><span id="member-count"></span> members</div>
+  <div class="widgets-container" id="widgets-container">
+    <div class="newsletter-widget" id="newsletter-widget">
+      <a class="nl-join" id="nl-join-trigger">
+        <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,6 12,13 2,6"/></svg>
+        <span class="nl-glitch" data-text="Newsletter">Newsletter</span>
+      </a>
+      <div class="nl-desc">Agents, vibecoding — les meilleures infos tous les vendredis</div>
+      <form class="nl-input-row" id="newsletter-form">
+        <span class="nl-prompt">&gt;</span>
+        <input type="email" class="nl-input" id="nl-email" placeholder="email@example.com" required>
+        <button type="submit" class="nl-submit">
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </form>
+      <div class="nl-status" id="nl-status"></div>
+    </div>
+
+    <div class="widget-divider"></div>
+
+    <div class="discord-widget" id="discord-widget">
+      <a href="https://discord.gg/prompthq" target="_blank" rel="noopener" class="discord-join">
+        <svg viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+        <span class="discord-glitch" data-text="Join Discord">Join Discord</span>
+      </a>
+      <div class="discord-desc">Rejoins la plus grosse communaut&eacute; de vibecoding francophone</div>
+      <div class="discord-stats-row">
+        <div class="discord-stat" id="stat-online" style="display:none"><span class="dot green"></span><span id="online-count"></span> online</div>
+        <div class="discord-stat" id="stat-members" style="display:none"><span class="dot grey"></span><span id="member-count"></span> members</div>
+      </div>
     </div>
   </div>
   <script>
@@ -1355,7 +1513,7 @@
 
     // Click = strong lateral impulse (like a fast flick)
     addEventListener('pointerdown', e => {
-      if (e.target.closest('a, button, .discord-widget')) return;
+      if (e.target.closest('a, button, .widgets-container')) return;
       if (!startTime || (performance.now() - startTime) * 0.001 < ENTRANCE_DURATION) return;
       hoverVelY += 0.167;
     });
