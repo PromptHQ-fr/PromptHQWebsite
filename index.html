@@ -324,8 +324,9 @@
       <div class="widget-desc">Agents, vibecoding — les meilleures infos tous les vendredis</div>
       <form class="nl-input-row" id="newsletter-form">
         <span class="nl-prompt">&gt;</span>
+        <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off">
         <input type="email" class="nl-input" id="nl-email" placeholder="email@example.com" required>
-        <button type="submit" class="nl-submit">
+        <button type="submit" class="nl-submit" id="nl-submit-btn">
           <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </form>
@@ -363,6 +364,71 @@
     document.getElementById('nl-join-trigger').addEventListener('click', function(e) {
       e.preventDefault();
       document.getElementById('nl-email').focus();
+    });
+
+    // REMPLACER cette URL par celle de ton Apps Script déployé
+    var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzwteSGwL5GNDyxcmJRTzkT8EfxcL37U2JknGvuH75aCxlErjGHtyeXVAu69V1wt6F0/exec';
+
+    document.getElementById('newsletter-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var email = document.getElementById('nl-email').value.trim();
+      var honeypot = this.querySelector('[name="website"]').value;
+      var status = document.getElementById('nl-status');
+      var btn = document.getElementById('nl-submit-btn');
+
+      if (!email) return;
+
+      var input = document.getElementById('nl-email');
+      btn.disabled = true;
+      input.value = '';
+      input.placeholder = 'envoi...';
+      input.style.color = 'rgba(255,255,255,0.5)';
+
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ email: email, website: honeypot, source: 'prompthq.fr' }),
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.status === 'ok') {
+          input.style.color = '#F82F02';
+          input.value = 'inscrit !';
+          input.readOnly = true;
+          setTimeout(function() {
+            input.value = '';
+            input.placeholder = 'email@example.com';
+            input.style.color = 'rgba(255,255,255,0.55)';
+            input.readOnly = false;
+          }, 3000);
+        } else if (d.status === 'duplicate') {
+          input.style.color = '#F82F02';
+          input.value = 'déjà inscrit';
+          setTimeout(function() {
+            input.value = '';
+            input.placeholder = 'email@example.com';
+            input.style.color = 'rgba(255,255,255,0.55)';
+          }, 3000);
+        } else {
+          input.style.color = '#F82F02';
+          input.value = d.message || 'erreur';
+          setTimeout(function() {
+            input.value = '';
+            input.placeholder = 'email@example.com';
+            input.style.color = 'rgba(255,255,255,0.55)';
+          }, 3000);
+        }
+        btn.disabled = false;
+      })
+      .catch(function() {
+        input.style.color = '#F82F02';
+        input.value = 'erreur réseau';
+        btn.disabled = false;
+        setTimeout(function() {
+          input.value = '';
+          input.placeholder = 'email@example.com';
+          input.style.color = 'rgba(255,255,255,0.55)';
+        }, 3000);
+      });
     });
   </script>
 
