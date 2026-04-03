@@ -43,7 +43,6 @@
       font-family: var(--font-family);
       background: #000000;
       color: #ffffff;
-      margin: 0;
       overflow: hidden;
     }
 
@@ -86,7 +85,7 @@
     }
 
     .header h1 {
-      font-size: 32px;
+      font-size: 27px;
       font-weight: 800;
       line-height: 1.15;
       letter-spacing: -0.5px;
@@ -121,13 +120,14 @@
       position: relative;
       opacity: 0;
       transform: translateY(20px);
+      animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards;
+      backdrop-filter: blur(16px) saturate(1.4);
+      -webkit-backdrop-filter: blur(16px) saturate(1.4);
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      color: #ffffff;
     }
-
-    /* Staggered entrance animations */
-    .glass-card:nth-child(1) { animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards; }
-    .glass-card:nth-child(2) { animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.2s forwards; }
-    .glass-card:nth-child(3) { animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.3s forwards; }
-    .glass-card:nth-child(4) { animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.4s forwards; }
 
     @keyframes fadeInUp {
       to {
@@ -153,31 +153,16 @@
       z-index: 2;
     }
 
-    /* ---- Dark glass ---- */
     .card--dark {
       background: rgba(28, 28, 30, 0.7);
-      backdrop-filter: blur(16px) saturate(1.4);
-      -webkit-backdrop-filter: blur(16px) saturate(1.4);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      color: #ffffff;
     }
 
-    /* ---- Orange glass ---- */
     .card--orange {
       background: rgba(248, 47, 2, 0.35);
-      backdrop-filter: blur(16px) saturate(1.4);
-      -webkit-backdrop-filter: blur(16px) saturate(1.4);
       border: 1px solid rgba(248, 47, 2, 0.3);
-      box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      color: #ffffff;
     }
 
-    /* ---- White glass ---- */
     .card--white {
       background: rgba(255, 255, 255, 0.12);
       backdrop-filter: blur(20px) saturate(1.4);
@@ -186,7 +171,6 @@
       box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.15);
-      color: #ffffff;
     }
 
     /* ========== CARD CONTENT ========== */
@@ -194,7 +178,6 @@
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
       padding: 14px 20px;
-      gap: 0;
     }
 
     .card-meta-item {
@@ -213,7 +196,7 @@
     }
 
     .card-meta-label {
-      font-size: 11px;
+      font-size: 9px;
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.3px;
@@ -221,7 +204,7 @@
     }
 
     .card-meta-value {
-      font-size: 15px;
+      font-size: 13px;
       font-weight: 700;
     }
 
@@ -233,11 +216,10 @@
     }
 
     .card-title {
-      font-size: 28px;
+      font-size: 24px;
       font-weight: 800;
       line-height: 1.1;
       letter-spacing: -0.5px;
-      max-width: 70%;
     }
 
     .card-arrow {
@@ -256,16 +238,141 @@
       transform: scale(0.92);
     }
 
-    .card-arrow svg {
+    .card-arrow svg,
+    .card-arrow img {
       width: 20px;
       height: 20px;
+      object-fit: contain;
+    }
+
+    /* ========== NEWSLETTER FORM ========== */
+    .card-body--stacked {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      padding-bottom: 6px;
+    }
+
+    .card-desc {
+      font-size: 11px;
+      font-weight: 400;
+      opacity: 0.6;
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+
+    .nl-input-row {
+      display: flex;
+      align-items: stretch;
+      font-family: 'StackSansText', monospace, system-ui;
+      width: 100%;
+    }
+
+    .nl-prompt, .nl-input, .nl-submit {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.12);
+      font-size: 12px;
+    }
+
+    .nl-prompt {
+      color: var(--color-accent);
+      padding: 10px 0 10px 14px;
+      border-right: none;
+      border-radius: 4px 0 0 4px;
+      display: flex;
+      align-items: center;
+    }
+
+    .nl-input {
+      border-left: none;
+      border-right: none;
+      padding: 10px;
+      color: rgba(255,255,255,0.85);
+      flex: 1;
+      min-width: 0;
+      font-family: inherit;
+      outline: none;
+      line-height: 1;
+    }
+
+    .nl-input::placeholder { color: rgba(255,255,255,0.4); }
+
+    .nl-input-row:focus-within .nl-prompt,
+    .nl-input-row:focus-within .nl-input,
+    .nl-input-row:focus-within .nl-submit { border-color: rgba(248,47,2,0.5); }
+
+    .nl-submit {
+      border-left: none;
+      border-radius: 0 4px 4px 0;
+      padding: 0 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+
+    .nl-submit svg {
+      width: 14px;
+      height: 14px;
+      stroke: rgba(255,255,255,0.5);
+      fill: none;
+      stroke-width: 2;
+      transition: stroke 0.3s;
+    }
+
+    .nl-submit:active svg { stroke: var(--color-accent); }
+
+    .nl-status {
+      font-size: 11px;
+      color: #23a55a;
+      min-height: 1em;
+    }
+
+    /* ========== TYPEWRITER ========== */
+    .typewriter {
+      opacity: 0;
+    }
+
+    .typewriter.typing {
+      opacity: 1;
+    }
+
+    .tw-cursor {
+      display: inline-block;
+      width: 1px;
+      background: var(--color-accent);
+      margin-left: 1px;
+      animation: twBlink 0.6s step-end infinite;
+    }
+
+    @keyframes twBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* ========== LIVE DOT ========== */
+    .live-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: #ff3b30;
+      border-radius: 50%;
+      margin-right: 4px;
+      vertical-align: middle;
+      animation: livePulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes livePulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.6); }
+      50% { opacity: 0.4; box-shadow: 0 0 6px 2px rgba(255, 59, 48, 0.3); }
     }
 
     /* Arrow variants */
-    .card--dark .card-arrow {
+    .card--dark .card-arrow,
+    .card--white .card-arrow {
       background: var(--color-accent);
     }
-    .card--dark .card-arrow svg {
+    .card--dark .card-arrow svg,
+    .card--white .card-arrow svg {
       stroke: #ffffff;
     }
 
@@ -274,13 +381,6 @@
     }
     .card--orange .card-arrow svg {
       stroke: #1C1C1E;
-    }
-
-    .card--white .card-arrow {
-      background: var(--color-accent);
-    }
-    .card--white .card-arrow svg {
-      stroke: #ffffff;
     }
   </style>
 </head>
@@ -299,110 +399,86 @@
       <!-- Project cards -->
       <main class="card-list">
 
-        <!-- Card 1: Dark -->
+        <!-- Card 1: Newsletter -->
         <article class="glass-card card--dark">
           <div class="card-meta">
             <div class="card-meta-item">
-              <span class="card-meta-label">Client</span>
-              <span class="card-meta-value">Alex Kim</span>
+              <span class="card-meta-label">Prochain envoi</span>
+              <span class="card-meta-value" id="nl-countdown">—</span>
             </div>
             <div class="card-meta-item">
-              <span class="card-meta-label">Budget</span>
-              <span class="card-meta-value">$4,560</span>
+              <span class="card-meta-label">Jour</span>
+              <span class="card-meta-value" id="nl-next-day">—</span>
             </div>
             <div class="card-meta-item">
-              <span class="card-meta-label">Tasks</span>
-              <span class="card-meta-value">24</span>
+              <span class="card-meta-label">Lecture</span>
+              <span class="card-meta-value">5 min</span>
             </div>
           </div>
-          <div class="card-body">
-            <h2 class="card-title">Website redesign</h2>
-            <div class="card-arrow">
-              <svg viewBox="0 0 20 20" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="4" y1="10" x2="16" y2="10"/>
-                <polyline points="11,5 16,10 11,15"/>
-              </svg>
-            </div>
+          <div class="card-body card-body--stacked">
+            <div class="card-desc">Le meilleur de l'IA chaque semaine</div>
+            <h2 class="card-title">Rejoins la Newsletter</h2>
+            <form class="nl-input-row" id="newsletter-form">
+              <span class="nl-prompt">&gt;</span>
+              <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off">
+              <input type="email" class="nl-input" id="nl-email" placeholder="email@example.com" required>
+              <button type="submit" class="nl-submit" id="nl-submit-btn">
+                <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </form>
+            <div class="nl-status" id="nl-status"></div>
           </div>
         </article>
 
-        <!-- Card 2: Orange -->
+        <!-- Card 2: Discord -->
         <article class="glass-card card--orange">
           <div class="card-meta">
             <div class="card-meta-item">
-              <span class="card-meta-label">Client</span>
-              <span class="card-meta-value">Rob Fox</span>
+              <span class="card-meta-label">Membres</span>
+              <span class="card-meta-value" id="discord-members">—</span>
             </div>
             <div class="card-meta-item">
-              <span class="card-meta-label">Budget</span>
-              <span class="card-meta-value">$6,180</span>
+              <span class="card-meta-label">En ligne</span>
+              <span class="card-meta-value" id="discord-online"><span class="live-dot"></span> —</span>
             </div>
             <div class="card-meta-item">
-              <span class="card-meta-label">Tasks</span>
-              <span class="card-meta-value">16</span>
+              <span class="card-meta-label">Langue</span>
+              <span class="card-meta-value">Français</span>
             </div>
           </div>
           <div class="card-body">
-            <h2 class="card-title">Website development</h2>
+            <div>
+              <div class="card-desc">Pose tes questions, partage tes projets</div>
+              <h2 class="card-title">Rejoins le Discord</h2>
+            </div>
             <div class="card-arrow">
-              <svg viewBox="0 0 20 20" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="4" y1="10" x2="16" y2="10"/>
-                <polyline points="11,5 16,10 11,15"/>
+              <svg viewBox="0 0 127.14 96.36" fill="#1C1C1E" stroke="none">
+                <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/>
               </svg>
             </div>
           </div>
         </article>
 
-        <!-- Card 3: White -->
+        <!-- Card 3: Formation -->
         <article class="glass-card card--white">
           <div class="card-meta">
             <div class="card-meta-item">
-              <span class="card-meta-label">Client</span>
-              <span class="card-meta-value">Lilly Brown</span>
+              <span class="card-meta-label">Format</span>
+              <span class="card-meta-value">Complète</span>
             </div>
             <div class="card-meta-item">
-              <span class="card-meta-label">Budget</span>
-              <span class="card-meta-value">$9,460</span>
+              <span class="card-meta-label">Sujets</span>
+              <span class="card-meta-value">IA</span>
             </div>
             <div class="card-meta-item">
-              <span class="card-meta-label">Tasks</span>
-              <span class="card-meta-value">9</span>
+              <span class="card-meta-label">Statut</span>
+              <span class="card-meta-value">Coming soon</span>
             </div>
           </div>
           <div class="card-body">
-            <h2 class="card-title">Website template fix</h2>
+            <h2 class="card-title">Formation agents & vibecoding</h2>
             <div class="card-arrow">
-              <svg viewBox="0 0 20 20" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="4" y1="10" x2="16" y2="10"/>
-                <polyline points="11,5 16,10 11,15"/>
-              </svg>
-            </div>
-          </div>
-        </article>
-
-        <!-- Card 4: Dark -->
-        <article class="glass-card card--dark">
-          <div class="card-meta">
-            <div class="card-meta-item">
-              <span class="card-meta-label">Client</span>
-              <span class="card-meta-value">Nick Port</span>
-            </div>
-            <div class="card-meta-item">
-              <span class="card-meta-label">Budget</span>
-              <span class="card-meta-value">$11,560</span>
-            </div>
-            <div class="card-meta-item">
-              <span class="card-meta-label">Tasks</span>
-              <span class="card-meta-value">32</span>
-            </div>
-          </div>
-          <div class="card-body">
-            <h2 class="card-title">Mobile app design</h2>
-            <div class="card-arrow">
-              <svg viewBox="0 0 20 20" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="4" y1="10" x2="16" y2="10"/>
-                <polyline points="11,5 16,10 11,15"/>
-              </svg>
+              <img src="../icon-white.png" alt="PromptHQ">
             </div>
           </div>
         </article>
@@ -421,6 +497,152 @@
   }
   </script>
 
+  <script>
+    // Typewriter effect on card text (not titles)
+    (function() {
+      var charDelay = 25;
+      var startDelay = 100;
+
+      // Process each card separately for sequential typing within each card
+      document.querySelectorAll('.glass-card').forEach(function(card) {
+        var elements = card.querySelectorAll('.card-meta-label, .card-meta-value, .card-desc');
+        var cardDelay = startDelay;
+
+        elements.forEach(function(el) {
+          if (el.id && (el.id.startsWith('nl-') || el.id.startsWith('discord-'))) return;
+          var text = el.textContent;
+          if (!text.trim()) return;
+
+          var savedText = text;
+          el.textContent = '';
+          el.classList.add('typewriter');
+
+          (function(element, txt, delay) {
+            setTimeout(function() {
+              element.classList.add('typing');
+              var cursor = document.createElement('span');
+              cursor.className = 'tw-cursor';
+              cursor.innerHTML = '&nbsp;';
+              element.appendChild(cursor);
+              var i = 0;
+
+              function typeNext() {
+                if (i < txt.length) {
+                  element.insertBefore(document.createTextNode(txt[i]), cursor);
+                  i++;
+                  setTimeout(typeNext, charDelay);
+                } else {
+                  setTimeout(function() { cursor.remove(); }, 300);
+                }
+              }
+              typeNext();
+            }, delay);
+          })(el, savedText, cardDelay);
+
+          cardDelay += savedText.length * charDelay + 50;
+        });
+      });
+    })();
+
+    // Countdown newsletter — prochain vendredi 14h heure de Paris (gère CET/CEST)
+    var countdownEl = document.getElementById('nl-countdown');
+    var dayEl = document.getElementById('nl-next-day');
+    var mois = ['jan', 'fév', 'mar', 'avr', 'mai', 'jun', 'jul', 'aoû', 'sep', 'oct', 'nov', 'déc'];
+
+    function getNextFridayParis() {
+      var now = new Date();
+      var parts = {};
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Europe/Paris',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false
+      }).formatToParts(now).forEach(function(p) { parts[p.type] = parseInt(p.value); });
+
+      var parisDay = new Date(parts.year, parts.month - 1, parts.day).getDay();
+      var daysUntil = (5 - parisDay + 7) % 7;
+      if (daysUntil === 0 && parts.hour >= 14) daysUntil = 7;
+
+      var targetDate = new Date(parts.year, parts.month - 1, parts.day + daysUntil);
+      var targetStr = targetDate.getFullYear() + '-' +
+        String(targetDate.getMonth() + 1).padStart(2, '0') + '-' +
+        String(targetDate.getDate()).padStart(2, '0') + 'T14:00:00';
+
+      // Convertir heure Paris en UTC via offset
+      var tempDate = new Date(targetStr + 'Z');
+      var parisAtTarget = new Date(tempDate.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
+      var targetUTC = new Date(tempDate.getTime() - (parisAtTarget - tempDate));
+
+      return { target: targetUTC, parisDate: targetDate };
+    }
+
+    function updateCountdown() {
+      var info = getNextFridayParis();
+      var diff = Math.max(0, info.target - new Date());
+
+      var d = Math.floor(diff / 86400000);
+      var h = Math.floor((diff % 86400000) / 3600000);
+
+      if (d === 0 && h === 0) {
+        countdownEl.textContent = 'maintenant';
+      } else if (d === 0) {
+        countdownEl.textContent = 'dans ' + h + 'h';
+      } else {
+        countdownEl.textContent = 'dans ' + d + 'j, ' + h + 'h';
+      }
+
+      var td = info.parisDate;
+      dayEl.textContent = 'Ven ' + td.getDate() + ' ' + mois[td.getMonth()];
+    }
+    updateCountdown();
+    setInterval(updateCountdown, 60000);
+
+    // Discord stats
+    fetch('https://discord.com/api/v10/invites/xaBr8E235f?with_counts=true')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.approximate_member_count) {
+          document.getElementById('discord-members').textContent = d.approximate_member_count.toLocaleString();
+        }
+        if (d.approximate_presence_count) {
+          document.getElementById('discord-online').innerHTML = '<span class="live-dot"></span> ' + d.approximate_presence_count.toLocaleString();
+        }
+      })
+      .catch(function() {});
+
+    var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzwteSGwL5GNDyxcmJRTzkT8EfxcL37U2JknGvuH75aCxlErjGHtyeXVAu69V1wt6F0/exec';
+
+    document.getElementById('newsletter-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var email = document.getElementById('nl-email').value.trim();
+      var honeypot = this.querySelector('[name="website"]').value;
+      var status = document.getElementById('nl-status');
+      var btn = document.getElementById('nl-submit-btn');
+
+      if (!email) return;
+
+      var input = document.getElementById('nl-email');
+      btn.disabled = true;
+      input.value = '';
+      input.placeholder = '...';
+
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'email=' + encodeURIComponent(email) + '&website=' + encodeURIComponent(honeypot)
+      }).then(function() {
+        status.textContent = 'Bienvenue dans le QG.';
+        status.style.color = '#23a55a';
+      }).catch(function() {
+        status.textContent = 'Erreur — réessaie.';
+        status.style.color = '#F82F02';
+      }).finally(function() {
+        btn.disabled = false;
+        input.placeholder = 'email@example.com';
+      });
+    });
+  </script>
+
   <script type="module">
     import * as THREE from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -434,7 +656,7 @@
       logoCam.position.set(0, 0, 5);
       logoCam.lookAt(0, 0, 0);
 
-      const logoRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      const logoRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: false });
       logoRenderer.setSize(size, size);
       logoRenderer.setPixelRatio(1);
       logoRenderer.setClearColor(0x000000, 0);
@@ -481,14 +703,15 @@
       });
 
       let logoStart = null;
+      let logoVisible = true;
+      new IntersectionObserver(([e]) => { logoVisible = e.isIntersecting; }).observe(wrap);
+
       function animateLogo(ts) {
         requestAnimationFrame(animateLogo);
-        if (!logoLoaded) return;
+        if (!logoLoaded || !logoVisible) return;
         if (!logoStart) logoStart = ts;
         const t = (ts - logoStart) * 0.001;
-        // Slow continuous rotation
         logoGroup.rotation.z = t * 0.5;
-        // Gentle float
         logoGroup.position.y = Math.sin(t * 0.8) * 0.05;
         logoRenderer.render(logoScene, logoCam);
       }
@@ -509,6 +732,9 @@
     renderer.setSize(innerWidth, innerHeight);
     renderer.setPixelRatio(Math.min(devicePixelRatio, maxDPR));
     document.body.insertBefore(renderer.domElement, document.body.firstChild);
+
+    // Shared constants
+    const uScaleVec = new THREE.Vector3(14, 10, 1);
 
     addEventListener('resize', () => {
       camera.aspect = innerWidth / innerHeight;
@@ -766,7 +992,7 @@
       vertexShader: tileVertShader,
       fragmentShader: tileFragShader,
       uniforms: {
-        uScale: { value: new THREE.Vector3(14, 10, 1) },
+        uScale: { value: uScaleVec },
         uNoiseTex: { value: noiseTex },
         uLogoTex: { value: logoTileTex },
         uTime: { value: 0 },
@@ -858,21 +1084,12 @@
       vertexShader: crossVertShader,
       fragmentShader: crossFragShader,
       uniforms: {
-        uScale: { value: new THREE.Vector3(14, 10, 1) },
+        uScale: { value: uScaleVec },
       },
       transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
     })));
-
-    // ── Lighting (simplified: ambient + 2 point lights) ──
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    const l1 = new THREE.PointLight(0xffffff, 5, 20);
-    l1.position.set(4, 4, 5);
-    scene.add(l1);
-    const l2 = new THREE.PointLight(0xffe0cc, 3, 20);
-    l2.position.set(-5, -1, 4);
-    scene.add(l2);
 
     // ── Bloom (simplified: 1 level) ──
     const fullscreenVertShader = /* glsl */`
@@ -889,7 +1106,7 @@
     bloomScene.add(bloomQuad);
     const bloomOrtho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
-    let rtW, rtH, sceneRT, bloomBrightRT, bloom0H, bloom0V;
+    let rtW, rtH, bloomW, bloomH, sceneRT, bloomBrightRT, bloom0H, bloom0V;
 
     function rebuildBloomTargets() {
       rtW = Math.floor(innerWidth * Math.min(devicePixelRatio, maxDPR));
@@ -916,10 +1133,11 @@
 
       sceneRT = new THREE.WebGLRenderTarget(rtW, rtH, sceneOpts);
 
-      const bw = Math.floor(rtW / 4), bh = Math.floor(rtH / 4);
-      bloomBrightRT = new THREE.WebGLRenderTarget(bw, bh, bloomOpts);
-      bloom0H = new THREE.WebGLRenderTarget(bw, bh, bloomOpts);
-      bloom0V = new THREE.WebGLRenderTarget(bw, bh, bloomOpts);
+      bloomW = Math.floor(rtW / 4);
+      bloomH = Math.floor(rtH / 4);
+      bloomBrightRT = new THREE.WebGLRenderTarget(bloomW, bloomH, bloomOpts);
+      bloom0H = new THREE.WebGLRenderTarget(bloomW, bloomH, bloomOpts);
+      bloom0V = new THREE.WebGLRenderTarget(bloomW, bloomH, bloomOpts);
     }
     rebuildBloomTargets();
 
@@ -1019,9 +1237,8 @@
       runBloomPass(bloomBrightMat, bloomBrightRT);
 
       // Bloom: gaussian blur (1 level, H then V)
-      const bw = Math.floor(rtW / 4), bh = Math.floor(rtH / 4);
       bloomBlurMat.uniforms.uBloomTex.value = bloomBrightRT.texture;
-      bloomBlurMat.uniforms.uResolution.value.set(bw, bh);
+      bloomBlurMat.uniforms.uResolution.value.set(bloomW, bloomH);
       bloomBlurMat.uniforms.uIsVertical.value = false;
       runBloomPass(bloomBlurMat, bloom0H);
 
