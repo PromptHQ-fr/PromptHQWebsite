@@ -687,7 +687,14 @@
     //  SHARED SETUP
     // ════════════════════════════════════════════
     const MOBILE_BREAKPOINT = 768;
-    let currentMode = innerWidth <= MOBILE_BREAKPOINT ? 'mobile' : 'desktop';
+    // Use multiple signals for reliable mobile detection (Twitter/Instagram in-app browsers
+    // may report wrong innerWidth initially)
+    function detectMode() {
+      if (innerWidth <= MOBILE_BREAKPOINT) return 'mobile';
+      if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && innerWidth <= 1024) return 'mobile';
+      return 'desktop';
+    }
+    let currentMode = detectMode();
 
     const maxDPR_desktop = 2;
     const maxDPR_mobile = 1.5;
@@ -1519,8 +1526,12 @@
     // ════════════════════════════════════════════
     //  RESIZE
     // ════════════════════════════════════════════
+    // Re-check mode shortly after load (in-app browsers may resize the viewport)
+    setTimeout(() => { switchMode(detectMode()); }, 100);
+    setTimeout(() => { switchMode(detectMode()); }, 500);
+
     addEventListener('resize', () => {
-      const newMode = innerWidth <= MOBILE_BREAKPOINT ? 'mobile' : 'desktop';
+      const newMode = detectMode();
       switchMode(newMode);
 
       renderer.setSize(innerWidth, innerHeight);
