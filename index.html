@@ -94,6 +94,21 @@
         right: 24px;
       }
     }
+    @media (max-width: 768px) {
+      .widgets-container {
+        bottom: 16px;
+        right: 16px;
+        gap: 16px;
+      }
+      .widget-join { font-size: 14px; }
+      .widget-desc { font-size: 10px; max-width: 200px; }
+      .nl-input-row { font-size: 12px; }
+      .nl-input, .nl-prompt { font-size: 12px; padding: 8px 10px; }
+      .nl-prompt { padding: 8px 0 8px 10px; }
+      .discord-join svg { width: 14px; height: 14px; }
+      .nl-join svg { width: 14px; height: 14px; }
+      .discord-stat { font-size: 12px; }
+    }
     .discord-widget, .newsletter-widget {
       display: flex;
       flex-direction: column;
@@ -280,38 +295,6 @@
       gap: 8px;
     }
 
-    @media (max-width: 768px) {
-      .loader-text { font-size: 20px; letter-spacing: 3px; }
-      .loader-sub { font-size: 10px; letter-spacing: 2px; }
-      .widgets-container {
-        top: env(safe-area-inset-top, 16px);
-        bottom: 0;
-        right: 0;
-        left: 0;
-        align-items: center;
-        text-align: center;
-        justify-content: flex-start;
-        gap: 0;
-        pointer-events: none;
-      }
-      .widgets-container > * { pointer-events: auto; }
-      .newsletter-widget, .discord-widget {
-        align-items: center;
-        text-align: center;
-      }
-      .newsletter-widget { order: -1; padding-top: 16px; }
-      .discord-widget { order: 1; position: absolute; top: 58%; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; }
-      .widget-divider { display: none; }
-      .widget-desc { text-align: center; max-width: 260px; padding: 0 24px; font-size: 10px; }
-      .discord-stats-row { flex-direction: row; gap: 12px; }
-      .discord-stat { font-size: 12px; }
-      .widget-join { font-size: 13px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 5px 12px; }
-      .discord-join svg { width: 14px; height: 14px; }
-      .nl-join svg { width: 13px; height: 13px; }
-      .nl-input-row { font-size: 12px; }
-      .nl-input, .nl-prompt { font-size: 12px; padding: 8px 10px; }
-      .nl-prompt { padding: 8px 0 8px 10px; }
-    }
   </style>
 </head>
 <body>
@@ -532,20 +515,13 @@
     import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || innerWidth < 768;
-    const maxDPR = isMobile ? 1.5 : 2;
+    const maxDPR = 2;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
 
-    const mobileFov = innerWidth / innerHeight < 0.8 ? 55 : 40;
-    const camera = new THREE.PerspectiveCamera(mobileFov, innerWidth / innerHeight, 0.1, 100);
-    if (isMobile) {
-      camera.position.set(0, -1.4, 7);
-      camera.lookAt(0, -1.4, 0);
-    } else {
-      camera.position.set(0, 0, 7);
-    }
+    const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 100);
+    camera.position.set(0, 0, 7);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(innerWidth, innerHeight);
@@ -1350,7 +1326,7 @@
         uNoiseTex: { value: noiseTex },
         uEnvMap: { value: cubeRT.texture },
         uFluidsTex: { value: null },
-        uRoughness: { value: isMobile ? 0.0 : 0.1 },
+        uRoughness: { value: 0.1 },
         uNoiseScale: { value: 9.0 },
         uMaterialColor: { value: new THREE.Vector3(255, 255, 255) },
         uMousePos: { value: new THREE.Vector2(0.5, 0.5) },
@@ -1360,7 +1336,6 @@
     });
 
     const logoGroup = new THREE.Group();
-    if (isMobile) logoGroup.position.y = -0.45;
     scene.add(logoGroup);
 
     let envCaptured = false;
@@ -1369,7 +1344,7 @@
       const model = gltf.scene;
       const box = new THREE.Box3().setFromObject(model);
       const size = box.getSize(new THREE.Vector3());
-      model.scale.setScalar((isMobile ? 1.95 : 3.0) / Math.max(size.x, size.y, size.z));
+      model.scale.setScalar(3.0 / Math.max(size.x, size.y, size.z));
       model.rotation.x = Math.PI / 2;
 
       const center = new THREE.Box3().setFromObject(model).getCenter(new THREE.Vector3());
@@ -1384,7 +1359,7 @@
     // ── "PromptHQ" text ──
     document.fonts.ready.then(() => {
       const c = document.createElement('canvas');
-      const textScale = isMobile ? 0.5 : 1;
+      const textScale = 1;
       c.width = 4096 * textScale; c.height = 1024 * textScale;
       const ctx = c.getContext('2d');
       ctx.textAlign = 'center';
@@ -1412,7 +1387,7 @@
 
       const dist = camera.position.z + 3;
       const visH = 2 * Math.tan(camera.fov * Math.PI / 360) * dist;
-      const titleScale = isMobile ? 0.9775 : 0.85;
+      const titleScale = 0.85;
       const planeW = Math.min(visH * camera.aspect * titleScale, 10);
       const plane = new THREE.Mesh(
         new THREE.PlaneGeometry(planeW, planeW / 4),
@@ -1509,7 +1484,7 @@
         uBloom0: { value: null },
         uBloom1: { value: null },
         uBloom2: { value: null },
-        uBoost: { value: isMobile ? 1.5 : 1.15 },
+        uBoost: { value: 1.15 },
       },
     });
 
@@ -1648,7 +1623,7 @@
       if (elapsed < 0.8) hoverVelY += 0.25 * deltaTime;
 
       // Accumulate mouse velocity as angular momentum
-      const rotSens = isMobile ? 0.09 : 0.024;
+      const rotSens = 0.024;
       hoverVelX -= dy * rotSens;
       hoverVelY += dx * rotSens;
       // Friction decay — 0.35 base: retains ~35% after 1s (strong inertia)
@@ -1663,7 +1638,7 @@
       const returnForce = Math.min(0.15 * deltaTime, 1.0);
       logoGroup.quaternion.slerp(autoSpinTarget, returnForce);
       // Gentle vertical float
-      logoGroup.position.y = (isMobile ? -0.45 : 0) + Math.sin(elapsed * 0.4) * 0.06;
+      logoGroup.position.y = Math.sin(elapsed * 0.4) * 0.06;
 
       // Capture environment cubemap once (after first frame setup)
       if (!envCaptured && logoGroup.children.length > 0) {
@@ -1691,13 +1666,13 @@
       // Bloom: gaussian blur (2 levels on mobile, 3 on desktop)
       runBlurLevel(bloomBrightRT, bloom0H, bloom0V, bw1, bh1);
       runBlurLevel(bloom0V, bloom1H, bloom1V, bw2, bh2);
-      if (!isMobile) runBlurLevel(bloom1V, bloom2H, bloom2V, bw3, bh3);
+      runBlurLevel(bloom1V, bloom2H, bloom2V, bw3, bh3);
 
       // Composite: scene + bloom → screen
       bloomCompositeMat.uniforms.uSceneTex.value = sceneRT.texture;
       bloomCompositeMat.uniforms.uBloom0.value = bloom0V.texture;
       bloomCompositeMat.uniforms.uBloom1.value = bloom1V.texture;
-      bloomCompositeMat.uniforms.uBloom2.value = isMobile ? bloom1V.texture : bloom2V.texture;
+      bloomCompositeMat.uniforms.uBloom2.value = bloom2V.texture;
       runBloomPass(bloomCompositeMat, null);
     }
 
