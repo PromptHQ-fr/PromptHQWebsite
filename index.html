@@ -1288,7 +1288,7 @@
     }
 
     getLogoModel((gltf) => {
-      const model = prepareLogoModel(gltf.scene, glassMaterial);
+      const model = prepareLogoModel(gltf.scene.clone(), glassMaterial);
       desktopLogoGroup.add(model);
       if (window._dismissLoader) window._dismissLoader();
     });
