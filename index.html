@@ -200,35 +200,35 @@
       -webkit-overflow-scrolling: touch;
       display: none;
     }
-    .app-inner { max-width: 480px; margin: 0 auto; padding: 0 var(--spacing-page); padding-bottom: 60px; }
+    .app-inner { max-width: 480px; margin: 0 auto; padding: 0 var(--spacing-page); padding-bottom: 60px; position: relative; }
 
     /* Mobile header */
     .header {
-      display: flex; align-items: center; justify-content: space-between;
       padding-top: calc(env(safe-area-inset-top, 0px) + 60px); padding-bottom: 28px;
-      opacity: 0; transform: translateY(20px);
-      animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      position: relative; z-index: 1;
     }
     .header h1 { font-size: 27px; font-weight: 800; line-height: 1.15; letter-spacing: -0.5px; color: #ffffff; }
-    .logo-3d-wrap {
-      width: 52px; height: 52px; flex-shrink: 0;
+    .logo-2d-wrap {
+      position: absolute; top: calc(env(safe-area-inset-top, 0px) + 30px); right: -105px;
+      width: 180px; height: 180px;
+      z-index: 0;
       filter: drop-shadow(0 0 8px rgba(255,255,255,0.4)) drop-shadow(0 0 20px rgba(255,255,255,0.15));
+      animation: logoSpinBob 12s linear infinite;
+      pointer-events: none;
     }
-    .logo-3d-wrap canvas { width: 100%; height: 100%; display: block; }
+    .logo-2d-wrap img { width: 100%; height: 100%; display: block; }
+    @keyframes logoSpinBob { 0% { transform: rotate(0deg) translateY(0); } 25% { transform: rotate(90deg) translateY(-2px); } 50% { transform: rotate(180deg) translateY(0); } 75% { transform: rotate(270deg) translateY(2px); } 100% { transform: rotate(360deg) translateY(0); } }
 
     /* Mobile card list */
-    .card-list { display: flex; flex-direction: column; gap: var(--spacing-card-gap); }
+    .card-list { display: flex; flex-direction: column; gap: var(--spacing-card-gap); position: relative; z-index: 1; }
 
     /* Glass card */
     .glass-card {
       border-radius: var(--radius-card); overflow: hidden; position: relative;
-      opacity: 0; transform: translateY(20px);
-      animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards;
       backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4);
       box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
       color: #ffffff;
     }
-    @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
 
     .card--dark { background: rgba(28,28,30,0.7); border: 1px solid rgba(255,255,255,0.1); }
     .card--orange { background: rgba(248,47,2,0.35); border: 1px solid rgba(248,47,2,0.3); }
@@ -341,7 +341,7 @@
     <div class="app-inner">
       <header class="header">
         <h1>Bienvenue sur<br>PromptHQ</h1>
-        <div class="logo-3d-wrap" id="logo-3d"></div>
+        <div class="logo-2d-wrap"><img src="icon-white.png" alt="PromptHQ"></div>
       </header>
       <main class="card-list">
         <!-- Card 1: Newsletter -->
@@ -1441,45 +1441,6 @@
       uniforms: { uSceneTex: { value: null }, uBloom0: { value: null } },
     });
 
-    // Mobile mini 3D logo (separate renderer in header)
-    {
-      const wrap = document.getElementById('logo-3d');
-      const size = 156;
-      const logoScene = new THREE.Scene();
-      const logoCam = new THREE.PerspectiveCamera(40, 1, 0.01, 100);
-      logoCam.position.set(0, 0, 5);
-      logoCam.lookAt(0, 0, 0);
-      const logoRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: false });
-      logoRenderer.setSize(size, size);
-      logoRenderer.setPixelRatio(1);
-      logoRenderer.setClearColor(0x000000, 0);
-      wrap.appendChild(logoRenderer.domElement);
-      logoScene.add(new THREE.AmbientLight(0xffffff, 1.2));
-      const pl = new THREE.PointLight(0xffffff, 8, 30); pl.position.set(3, 3, 5); logoScene.add(pl);
-      const pl2 = new THREE.PointLight(0xffffff, 4, 30); pl2.position.set(-3, -2, 4); logoScene.add(pl2);
-      const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.2, metalness: 0.0, roughness: 0.4, side: THREE.DoubleSide });
-      const logoGroup = new THREE.Group();
-      logoScene.add(logoGroup);
-      let logoLoaded = false;
-      getLogoModel((gltf) => {
-        const model = prepareLogoModel(gltf.scene.clone(), whiteMat);
-        logoGroup.add(model);
-        logoLoaded = true;
-      });
-      let logoStart = null;
-      let logoVisible = true;
-      new IntersectionObserver(([e]) => { logoVisible = e.isIntersecting; }).observe(wrap);
-      function animateLogo(ts) {
-        requestAnimationFrame(animateLogo);
-        if (!logoLoaded || !logoVisible || currentMode !== 'mobile') return;
-        if (!logoStart) logoStart = ts;
-        const t = (ts - logoStart) * 0.001;
-        logoGroup.rotation.z = t * 0.5;
-        logoGroup.position.y = Math.sin(t * 0.8) * 0.05;
-        logoRenderer.render(logoScene, logoCam);
-      }
-      requestAnimationFrame(animateLogo);
-    }
 
     // ════════════════════════════════════════════
     //  MOUSE / TOUCH
