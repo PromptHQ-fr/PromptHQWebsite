@@ -284,27 +284,33 @@
       .loader-text { font-size: 20px; letter-spacing: 3px; }
       .loader-sub { font-size: 10px; letter-spacing: 2px; }
       .widgets-container {
-        bottom: auto;
-        top: 60%;
+        top: env(safe-area-inset-top, 16px);
+        bottom: 0;
         right: 0;
         left: 0;
         align-items: center;
         text-align: center;
-        transform: scale(1.25);
-        gap: 20px;
+        justify-content: flex-start;
+        gap: 0;
+        pointer-events: none;
       }
+      .widgets-container > * { pointer-events: auto; }
       .newsletter-widget, .discord-widget {
         align-items: center;
         text-align: center;
       }
-      .widget-desc { text-align: center; max-width: 260px; padding: 0 24px; font-size: 11px; }
-      .discord-stats-row { flex-direction: row; gap: 16px; }
-      .discord-stat { font-size: 13px; }
-      .widget-join { font-size: 14px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 6px 14px; }
-      .discord-join svg { width: 16px; height: 16px; }
-      .nl-join svg { width: 14px; height: 14px; }
-      .nl-input-row { transform: scale(0.85); }
-      .widget-divider { align-self: center; }
+      .newsletter-widget { order: -1; padding-top: 16px; }
+      .discord-widget { order: 1; position: absolute; top: 58%; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; }
+      .widget-divider { display: none; }
+      .widget-desc { text-align: center; max-width: 260px; padding: 0 24px; font-size: 10px; }
+      .discord-stats-row { flex-direction: row; gap: 12px; }
+      .discord-stat { font-size: 12px; }
+      .widget-join { font-size: 13px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 5px 12px; }
+      .discord-join svg { width: 14px; height: 14px; }
+      .nl-join svg { width: 13px; height: 13px; }
+      .nl-input-row { font-size: 12px; }
+      .nl-input, .nl-prompt { font-size: 12px; padding: 8px 10px; }
+      .nl-prompt { padding: 8px 0 8px 10px; }
     }
   </style>
 </head>
