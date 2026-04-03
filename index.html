@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <link rel="icon" type="image/png" href="icon-01.png">
   <title>PromptHQ</title>
   <meta property="og:title" content="PromptHQ">
@@ -11,6 +11,9 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="PromptHQ">
   <meta name="twitter:image" content="https://prompthq.fr/og_image.jpeg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     @font-face {
       font-family: 'StackSansText';
@@ -18,13 +21,38 @@
       font-weight: 100 900;
       font-display: swap;
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ========== RESET ========== */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ========== TOKENS ========== */
+    :root {
+      --color-accent: #F82F02;
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'StackSansText', monospace, system-ui;
+      --radius-card: 20px;
+      --spacing-page: 20px;
+      --spacing-card-gap: 16px;
+    }
+
+    /* ========== BASE ========== */
+    html {
+      -webkit-text-size-adjust: 100%;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
     html, body {
       width: 100%; height: 100%;
       background: #000000;
       overflow: hidden;
     }
+    body {
+      font-family: var(--font-family);
+      color: #ffffff;
+    }
     canvas { position: fixed; top: 0; left: 0; display: block; }
+
+    /* ========== DESKTOP: LOADER ========== */
     .loader {
       position: fixed; inset: 0; background: #000000;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -32,233 +60,108 @@
     }
     .loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
     .loader-text {
-      font-family: 'StackSansText', monospace, system-ui;
-      font-size: 28px;
-      font-weight: 700;
-      letter-spacing: 6px;
+      font-family: var(--font-mono);
+      font-size: 28px; font-weight: 700; letter-spacing: 6px;
       color: rgba(255,255,255,0.9);
     }
-    .loader-text .char {
-      display: inline-block;
-      min-width: 0.6em;
-      text-align: center;
-    }
-    .loader-text .char.glitch {
-      color: #F82F02;
-      text-shadow: 0 0 8px rgba(248,47,2,0.5);
-    }
-    .loader-text .char.resolved {
-      color: rgba(255,255,255,0.9);
-      text-shadow: none;
-    }
+    .loader-text .char { display: inline-block; min-width: 0.6em; text-align: center; }
+    .loader-text .char.glitch { color: var(--color-accent); text-shadow: 0 0 8px rgba(248,47,2,0.5); }
+    .loader-text .char.resolved { color: rgba(255,255,255,0.9); text-shadow: none; }
     .loader-scanlines {
       position: fixed; inset: 0; pointer-events: none;
-      background: repeating-linear-gradient(
-        0deg, transparent, transparent 2px,
-        rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px
-      );
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px);
       z-index: 101; opacity: 0; transition: opacity 0.3s ease;
     }
     .loader-scanlines.active { opacity: 1; }
     .loader-cursor {
       display: inline-block; width: 2px; height: 1.1em;
-      background: #F82F02; margin-left: 2px;
-      vertical-align: text-bottom;
+      background: var(--color-accent); margin-left: 2px; vertical-align: text-bottom;
       animation: blink 0.6s step-end infinite;
     }
     @keyframes blink { 50% { opacity: 0; } }
     .loader-sub {
-      font-family: 'StackSansText', monospace, system-ui;
-      font-size: 11px; font-weight: 500;
-      letter-spacing: 3px; text-transform: uppercase;
-      color: rgba(255,255,255,0.25);
-      margin-top: 16px; opacity: 0; transition: opacity 0.4s ease;
+      font-family: var(--font-mono);
+      font-size: 11px; font-weight: 500; letter-spacing: 3px; text-transform: uppercase;
+      color: rgba(255,255,255,0.25); margin-top: 16px; opacity: 0; transition: opacity 0.4s ease;
     }
     .loader-sub.visible { opacity: 1; }
 
+    /* ========== DESKTOP: WIDGETS ========== */
     .widgets-container {
-      position: fixed;
-      bottom: 33%;
+      position: fixed; bottom: 33%;
       right: max(160px, calc(50% - 920px));
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 28px;
-      font-family: 'StackSansText', system-ui, sans-serif;
+      z-index: 10; display: flex; flex-direction: column; align-items: flex-end; gap: 28px;
+      font-family: var(--font-mono);
       transition: all 0.3s ease;
     }
     @media (max-width: 1400px) {
-      .widgets-container {
-        bottom: 24px;
-        right: 24px;
-      }
-    }
-    @media (max-width: 768px) {
-      .widgets-container {
-        bottom: 16px;
-        right: 16px;
-        gap: 16px;
-      }
-      .widget-join { font-size: 14px; }
-      .widget-desc { font-size: 10px; max-width: 200px; }
-      .nl-input-row { font-size: 12px; }
-      .nl-input, .nl-prompt { font-size: 12px; padding: 8px 10px; }
-      .nl-prompt { padding: 8px 0 8px 10px; }
-      .discord-join svg { width: 14px; height: 14px; }
-      .nl-join svg { width: 14px; height: 14px; }
-      .discord-stat { font-size: 12px; }
+      .widgets-container { bottom: 24px; right: 24px; }
     }
     .discord-widget, .newsletter-widget {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 8px;
+      display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
     }
-    .widget-divider {
-      width: 40px;
-      height: 1px;
-      background: rgba(255,255,255,0.08);
-      align-self: flex-end;
-    }
-
-    /* Newsletter widget */
+    .widget-divider { width: 40px; height: 1px; background: rgba(255,255,255,0.08); align-self: flex-end; }
     .widget-join {
-      display: inline-flex;
-      align-items: center;
-      font-size: 26px;
-      font-weight: 400;
-      color: rgba(255,255,255,0.85);
-      cursor: pointer;
-      text-decoration: none;
-      transition: color 0.3s ease;
+      display: inline-flex; align-items: center;
+      font-size: 26px; font-weight: 400; color: rgba(255,255,255,0.85);
+      cursor: pointer; text-decoration: none; transition: color 0.3s ease;
       -webkit-tap-highlight-color: transparent;
     }
-    .widget-join:hover { color: #F82F02; }
+    .widget-join:hover { color: var(--color-accent); }
     .nl-join { gap: 8px; }
-    .nl-join svg {
-      width: 22px;
-      height: 22px;
-      stroke: currentColor;
-      fill: none;
-      stroke-width: 1.5;
-      animation: glitch 1s linear infinite;
-    }
-    .widget-glitch {
-      position: relative;
-      display: inline-block;
-      animation: glitch 1s linear infinite;
-    }
-    .widget-glitch:before,
-    .widget-glitch:after {
-      content: attr(data-text);
-      position: absolute;
-      left: 0;
-      pointer-events: none;
-    }
-    .widget-glitch:before {
-      animation: glitchTop 1s linear infinite;
-      clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%);
-    }
-    .widget-glitch:after {
-      animation: glitchBottom 1.5s linear infinite;
-      clip-path: polygon(0 67%, 100% 67%, 100% 100%, 0 100%);
-    }
-    .widget-desc {
-      max-width: 280px;
-      font-size: 15px;
-      font-weight: 400;
-      line-height: 1.5;
-      color: rgba(255,255,255,0.35);
-      text-align: right;
-      margin-top: 4px;
-    }
+    .nl-join svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.5; animation: glitch 1s linear infinite; }
+    .widget-glitch { position: relative; display: inline-block; animation: glitch 1s linear infinite; }
+    .widget-glitch:before, .widget-glitch:after { content: attr(data-text); position: absolute; left: 0; pointer-events: none; }
+    .widget-glitch:before { animation: glitchTop 1s linear infinite; clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%); }
+    .widget-glitch:after { animation: glitchBottom 1.5s linear infinite; clip-path: polygon(0 67%, 100% 67%, 100% 100%, 0 100%); }
+    .widget-desc { max-width: 280px; font-size: 15px; font-weight: 400; line-height: 1.5; color: rgba(255,255,255,0.35); text-align: right; margin-top: 4px; }
+
+    /* Desktop newsletter input */
+    /* ========== SHARED NEWSLETTER INPUT ========== */
     .nl-input-row {
-      display: flex;
-      align-items: stretch;
-      margin-top: 4px;
-      font-family: 'StackSansText', monospace;
-      width: 100%;
+      display: flex; align-items: stretch;
+      font-family: var(--font-mono); width: 100%;
+    }
+    .widgets-container .nl-input-row { margin-top: 4px; }
+    .nl-prompt, .nl-input, .nl-submit {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.12); font-size: 13px;
     }
     .nl-prompt {
-      font-size: 14px;
-      color: #F82F02;
-      padding: 10px 0 10px 14px;
-      border: 1px solid rgba(255,255,255,0.12);
-      border-right: none;
-      border-radius: 4px 0 0 4px;
-      background: rgba(255,255,255,0.03);
-      display: flex;
-      align-items: center;
+      color: var(--color-accent); padding: 10px 0 10px 14px;
+      border-right: none; border-radius: 4px 0 0 4px; display: flex; align-items: center;
     }
     .nl-input {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-left: none;
-      border-right: none;
-      padding: 10px 10px;
-      font-size: 14px;
-      color: rgba(255,255,255,0.55);
-      flex: 1;
-      min-width: 0;
-      font-family: 'StackSansText', monospace;
-      outline: none;
-      line-height: 1;
+      border-left: none; border-right: none; padding: 10px;
+      color: rgba(255,255,255,0.85); flex: 1; min-width: 0;
+      font-family: inherit; outline: none; line-height: 1;
     }
-    .nl-input::placeholder { color: rgba(255,255,255,0.55); }
+    .nl-input::placeholder { color: rgba(255,255,255,0.45); }
     .nl-input-row:focus-within .nl-prompt,
     .nl-input-row:focus-within .nl-input,
     .nl-input-row:focus-within .nl-submit { border-color: rgba(248,47,2,0.5); }
     .nl-submit {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-left: none;
-      border-radius: 0 4px 4px 0;
-      padding: 0 14px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      transition: background 0.3s;
+      border-left: none; border-radius: 0 4px 4px 0; padding: 0 14px;
+      cursor: pointer; display: flex; align-items: center; transition: background 0.3s;
     }
     .nl-submit:hover { background: rgba(248,47,2,0.1); }
-    .nl-submit svg {
-      width: 14px;
-      height: 14px;
-      stroke: rgba(255,255,255,0.5);
-      fill: none;
-      stroke-width: 2;
-      transition: stroke 0.3s;
+    .nl-submit svg { width: 14px; height: 14px; stroke: rgba(255,255,255,0.5); fill: none; stroke-width: 2; transition: stroke 0.3s; }
+    .nl-submit:hover svg, .nl-submit:active svg { stroke: var(--color-accent); }
+    .card-nl-form { padding: 0 20px 16px; max-width: 65%; }
+    .card-nl-form .nl-input { border-radius: 0 4px 4px 0; border-right: 1px solid rgba(255,255,255,0.12); }
+    .card-arrow--nl {
+      background: var(--color-accent); border: none;
+      position: absolute; bottom: 16px; right: 20px;
     }
-    .nl-submit:hover svg { stroke: #F82F02; }
-    .nl-status {
-      font-size: 13px;
-      color: #23a55a;
-      text-align: right;
-      display: none;
-      margin-top: 2px;
-    }
-    .discord-stat {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 24px;
-      font-weight: 400;
-      color: rgba(255,255,255,0.55);
-    }
-    .discord-stat .dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-    }
+    .nl-status { font-size: 12px; color: #23a55a; display: none; margin-top: 2px; }
+    .widgets-container .nl-status { text-align: right; }
+    .discord-stat { display: flex; align-items: center; gap: 8px; font-size: 24px; font-weight: 400; color: rgba(255,255,255,0.55); }
+    .discord-stat .dot { width: 7px; height: 7px; border-radius: 50%; }
     .discord-stat .dot.green { background: #23a55a; }
     .discord-stat .dot.grey { background: rgba(255,255,255,0.5); }
     .discord-join { gap: 7px; margin-top: 4px; }
-    .discord-join svg {
-      width: 24px;
-      height: 24px;
-      fill: currentColor;
-      animation: glitch 1s linear infinite;
-    }
+    .discord-join svg { width: 24px; height: 24px; fill: currentColor; animation: glitch 1s linear infinite; }
+    .discord-stats-row { display: flex; flex-direction: column; gap: 8px; }
+
     @keyframes glitch {
       0%,1% { transform: translate(0,0) skew(0deg); }
       2% { transform: translate(2px,0) skew(0deg); }
@@ -289,21 +192,119 @@
       64% { transform: translate(-2px,0); }
       65%,100% { transform: translate(0,0); }
     }
-    .discord-stats-row {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+
+    /* ========== MOBILE: APP OVERLAY ========== */
+    #mobile-app {
+      position: fixed; inset: 0; z-index: 1;
+      overflow-y: auto; overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      display: none;
+    }
+    .app-inner { max-width: 480px; margin: 0 auto; padding: 0 var(--spacing-page); padding-bottom: 60px; }
+
+    /* Mobile header */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-top: calc(env(safe-area-inset-top, 0px) + 60px); padding-bottom: 28px;
+      opacity: 0; transform: translateY(20px);
+      animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    .header h1 { font-size: 27px; font-weight: 800; line-height: 1.15; letter-spacing: -0.5px; color: #ffffff; }
+    .logo-3d-wrap {
+      width: 52px; height: 52px; flex-shrink: 0;
+      filter: drop-shadow(0 0 8px rgba(255,255,255,0.4)) drop-shadow(0 0 20px rgba(255,255,255,0.15));
+    }
+    .logo-3d-wrap canvas { width: 100%; height: 100%; display: block; }
+
+    /* Mobile card list */
+    .card-list { display: flex; flex-direction: column; gap: var(--spacing-card-gap); }
+
+    /* Glass card */
+    .glass-card {
+      border-radius: var(--radius-card); overflow: hidden; position: relative;
+      opacity: 0; transform: translateY(20px);
+      animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards;
+      backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+      color: #ffffff;
+    }
+    @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+
+    .card--dark { background: rgba(28,28,30,0.7); border: 1px solid rgba(255,255,255,0.1); }
+    .card--orange { background: rgba(248,47,2,0.35); border: 1px solid rgba(248,47,2,0.3); }
+    .card--white {
+      background: rgba(255,255,255,0.12);
+      backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      border: 1px solid rgba(255,255,255,0.15);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
     }
 
+    .card-meta { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 14px 20px; }
+    .card-meta-item { display: flex; flex-direction: column; gap: 2px; }
+    .card-meta-item:not(:first-child) { border-left: 1px solid rgba(255,255,255,0.15); padding-left: 16px; }
+    .card--white .card-meta-item:not(:first-child) { border-left-color: rgba(255,255,255,0.2); }
+    .card-meta-label { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; opacity: 0.6; }
+    .card-meta-value { font-size: 13px; font-weight: 700; }
+    .card-body { display: flex; align-items: flex-end; justify-content: space-between; padding: 16px 20px 20px; }
+    .card-title { font-size: 24px; font-weight: 800; line-height: 1.1; letter-spacing: -0.5px; }
+    .card-arrow {
+      width: 48px; height: 48px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; cursor: pointer; transition: transform 0.2s ease;
+    }
+    .card-arrow:active { transform: scale(0.92); }
+    .card-arrow svg, .card-arrow img { width: 20px; height: 20px; object-fit: contain; }
+
+    /* Mobile newsletter form */
+    .card-body--stacked { flex-direction: column; align-items: stretch; gap: 12px; padding-bottom: 16px; }
+    .card-desc { font-size: 11px; font-weight: 400; opacity: 0.6; line-height: 1.4; margin-bottom: 6px; }
+
+    /* Mobile typewriter */
+    .typewriter { opacity: 0; }
+    .typewriter.typing { opacity: 1; }
+    .tw-cursor { display: inline-block; width: 1px; background: var(--color-accent); margin-left: 1px; animation: twBlink 0.6s step-end infinite; }
+    @keyframes twBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    /* Mobile live dot */
+    .live-dot { display: inline-block; width: 6px; height: 6px; background: #ff3b30; border-radius: 50%; margin-right: 4px; vertical-align: middle; animation: livePulse 1.5s ease-in-out infinite; }
+    @keyframes livePulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255,59,48,0.6); } 50% { opacity: 0.4; box-shadow: 0 0 6px 2px rgba(255,59,48,0.3); } }
+
+    /* Mobile card arrow variants */
+    .card--dark .card-arrow, .card--white .card-arrow { background: var(--color-accent); }
+    .card-arrow--disabled,
+    .card--dark .card-arrow--disabled,
+    .card--white .card-arrow--disabled {
+      background: transparent;
+      border: 2px dashed rgba(248, 47, 2, 0.4);
+      cursor: default;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .card-arrow--disabled:active { transform: none; }
+    .card--dark .card-arrow svg, .card--white .card-arrow svg { stroke: #ffffff; }
+    .card--orange .card-arrow { background: #ffffff; }
+    .card--orange .card-arrow svg { stroke: #1C1C1E; }
+
+    /* ========== RESPONSIVE TOGGLE ========== */
+    @media (max-width: 768px) {
+      #mobile-app { display: block; }
+      .widgets-container { display: none !important; }
+    }
+    @media (min-width: 769px) {
+      #mobile-app { display: none !important; }
+    }
   </style>
 </head>
 <body>
+
+  <!-- ===== DESKTOP: Loader ===== -->
   <div class="loader-scanlines" id="scanlines"></div>
   <div class="loader" id="loader">
     <div class="loader-text" id="glitch-text"></div>
     <div class="loader-sub" id="loader-sub">initializing</div>
   </div>
 
+  <!-- ===== DESKTOP: Widgets ===== -->
   <div class="widgets-container" id="widgets-container">
     <div class="newsletter-widget" id="newsletter-widget">
       <a class="widget-join nl-join" id="nl-join-trigger">
@@ -321,9 +322,7 @@
       </form>
       <div class="nl-status" id="nl-status"></div>
     </div>
-
     <div class="widget-divider"></div>
-
     <div class="discord-widget" id="discord-widget">
       <a href="https://discord.gg/prompthq" target="_blank" rel="noopener" class="widget-join discord-join">
         <svg viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
@@ -336,42 +335,173 @@
       </div>
     </div>
   </div>
+
+  <!-- ===== MOBILE: Dashboard ===== -->
+  <div id="mobile-app">
+    <div class="app-inner">
+      <header class="header">
+        <h1>Bienvenue sur<br>PromptHQ</h1>
+        <div class="logo-3d-wrap" id="logo-3d"></div>
+      </header>
+      <main class="card-list">
+        <!-- Card 1: Newsletter -->
+        <article class="glass-card card--dark">
+          <div class="card-meta">
+            <div class="card-meta-item">
+              <span class="card-meta-label">Prochain envoi</span>
+              <span class="card-meta-value" id="nl-countdown">—</span>
+            </div>
+            <div class="card-meta-item">
+              <span class="card-meta-label">Jour</span>
+              <span class="card-meta-value" id="nl-next-day">—</span>
+            </div>
+            <div class="card-meta-item">
+              <span class="card-meta-label">Lecture</span>
+              <span class="card-meta-value">5 min</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div>
+              <div class="card-desc">Le meilleur de l'IA chaque semaine</div>
+              <h2 class="card-title">Rejoins la Newsletter</h2>
+            </div>
+          </div>
+          <div class="card-nl-form">
+            <form class="nl-input-row" id="newsletter-form-m">
+              <span class="nl-prompt">&gt;</span>
+              <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off">
+              <input type="email" class="nl-input" id="nl-email-m" placeholder="email@example.com" required autocapitalize="off" autocomplete="email">
+              <button type="submit" class="nl-submit" id="nl-submit-btn-m" style="display:none"></button>
+            </form>
+            <div class="nl-status" id="nl-status-m"></div>
+          </div>
+          <button type="button" class="card-arrow card-arrow--nl" id="nl-arrow-m">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </article>
+        <!-- Card 2: Discord -->
+        <article class="glass-card card--orange">
+          <div class="card-meta">
+            <div class="card-meta-item">
+              <span class="card-meta-label">Membres</span>
+              <span class="card-meta-value" id="discord-members-m">—</span>
+            </div>
+            <div class="card-meta-item">
+              <span class="card-meta-label">En ligne</span>
+              <span class="card-meta-value" id="discord-online-m"><span class="live-dot"></span> —</span>
+            </div>
+            <div class="card-meta-item">
+              <span class="card-meta-label">Langue</span>
+              <span class="card-meta-value">Français</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div>
+              <div class="card-desc">Pose tes questions, partage tes projets</div>
+              <h2 class="card-title">Rejoins le Discord</h2>
+            </div>
+            <a href="https://discord.gg/xaBr8E235f" target="_blank" rel="noopener" class="card-arrow">
+              <svg viewBox="0 0 127.14 96.36" fill="#1C1C1E" stroke="none">
+                <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/>
+              </svg>
+            </a>
+          </div>
+        </article>
+        <!-- Card 3: Formation -->
+        <article class="glass-card card--white">
+          <div class="card-meta">
+            <div class="card-meta-item">
+              <span class="card-meta-label">Format</span>
+              <span class="card-meta-value">Complète</span>
+            </div>
+            <div class="card-meta-item">
+              <span class="card-meta-label">Sujets</span>
+              <span class="card-meta-value">IA</span>
+            </div>
+            <div class="card-meta-item">
+              <span class="card-meta-label">Statut</span>
+              <span class="card-meta-value">Coming soon</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <h2 class="card-title">Formation agents & vibecoding</h2>
+            <div class="card-arrow card-arrow--disabled">
+              <img src="icon-white.png" alt="PromptHQ">
+            </div>
+          </div>
+        </article>
+      </main>
+    </div>
+  </div>
+
+  <!-- ===== SHARED JS: Discord stats, Newsletter, Typewriter, Countdown, Loader ===== -->
   <script>
+    // ── Discord stats (feeds both desktop + mobile) ──
     fetch('https://discord.com/api/v10/invites/xaBr8E235f?with_counts=true')
-      .then(r => r.json())
-      .then(d => {
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
         if (d.approximate_member_count) {
+          // Desktop
           document.getElementById('online-count').textContent = d.approximate_presence_count.toLocaleString();
           document.getElementById('member-count').textContent = d.approximate_member_count.toLocaleString();
           document.getElementById('stat-online').style.display = 'flex';
           document.getElementById('stat-members').style.display = 'flex';
+          // Mobile
+          document.getElementById('discord-members-m').textContent = d.approximate_member_count.toLocaleString();
+          document.getElementById('discord-online-m').innerHTML = '<span class="live-dot"></span> ' + d.approximate_presence_count.toLocaleString();
         }
       })
-      .catch(() => {});
-  </script>
-  <script>
+      .catch(function() {});
+
+    // ── Newsletter handler (shared for both forms) ──
+    var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzwteSGwL5GNDyxcmJRTzkT8EfxcL37U2JknGvuH75aCxlErjGHtyeXVAu69V1wt6F0/exec';
+
+    // Desktop trigger
     document.getElementById('nl-join-trigger').addEventListener('click', function(e) {
       e.preventDefault();
       document.getElementById('nl-email').focus();
     });
 
-    // REMPLACER cette URL par celle de ton Apps Script déployé
-    var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzwteSGwL5GNDyxcmJRTzkT8EfxcL37U2JknGvuH75aCxlErjGHtyeXVAu69V1wt6F0/exec';
-
+    // Desktop form
     document.getElementById('newsletter-form').addEventListener('submit', function(e) {
       e.preventDefault();
-      var email = document.getElementById('nl-email').value.trim();
-      var honeypot = this.querySelector('[name="website"]').value;
-      var status = document.getElementById('nl-status');
-      var btn = document.getElementById('nl-submit-btn');
+      handleNewsletterSubmit('nl-email', 'nl-submit-btn', 'nl-status', this);
+    });
+
+    // Mobile form
+    document.getElementById('newsletter-form-m').addEventListener('submit', function(e) {
+      e.preventDefault();
+      handleNewsletterSubmit('nl-email-m', 'nl-submit-btn-m', 'nl-status-m', this);
+    });
+
+    // Mobile arrow button: focus input if empty, submit if filled
+    document.getElementById('nl-arrow-m').addEventListener('click', function() {
+      var input = document.getElementById('nl-email-m');
+      if (!input.value.trim()) {
+        input.focus();
+      } else {
+        document.getElementById('newsletter-form-m').requestSubmit();
+      }
+    });
+
+    function handleNewsletterSubmit(emailId, btnId, statusId, form) {
+      var email = document.getElementById(emailId).value.trim();
+      var honeypot = form.querySelector('[name="website"]').value;
+      var status = document.getElementById(statusId);
+      var btn = document.getElementById(btnId);
+      var input = document.getElementById(emailId);
+      var defaultColor = getComputedStyle(input).color || 'rgba(255,255,255,0.55)';
 
       if (!email) return;
-
-      var input = document.getElementById('nl-email');
       btn.disabled = true;
       input.value = '';
       input.placeholder = 'envoi...';
-      input.style.color = 'rgba(255,255,255,0.5)';
+
+      function resetInput() {
+        input.value = ''; input.placeholder = 'email@example.com';
+        input.style.color = defaultColor; input.readOnly = false;
+        status.style.display = 'none'; status.textContent = '';
+      }
 
       fetch(APPS_SCRIPT_URL, {
         method: 'POST',
@@ -379,128 +509,166 @@
       })
       .then(function(r) { return r.json(); })
       .then(function(d) {
+        input.style.color = '#F82F02';
         if (d.status === 'ok') {
-          input.style.color = '#F82F02';
           input.value = 'inscrit !';
           input.readOnly = true;
-          setTimeout(function() {
-            input.value = '';
-            input.placeholder = 'email@example.com';
-            input.style.color = 'rgba(255,255,255,0.55)';
-            input.readOnly = false;
-          }, 3000);
         } else if (d.status === 'duplicate') {
-          input.style.color = '#F82F02';
-          input.value = 'déjà inscrit';
-          setTimeout(function() {
-            input.value = '';
-            input.placeholder = 'email@example.com';
-            input.style.color = 'rgba(255,255,255,0.55)';
-          }, 3000);
+          input.value = 'tu fais déjà partie du QG !';
+          input.readOnly = true;
         } else {
-          input.style.color = '#F82F02';
           input.value = d.message || 'erreur';
-          setTimeout(function() {
-            input.value = '';
-            input.placeholder = 'email@example.com';
-            input.style.color = 'rgba(255,255,255,0.55)';
-          }, 3000);
         }
         btn.disabled = false;
+        setTimeout(resetInput, 3000);
       })
       .catch(function() {
         input.style.color = '#F82F02';
         input.value = 'erreur réseau';
         btn.disabled = false;
-        setTimeout(function() {
-          input.value = '';
-          input.placeholder = 'email@example.com';
-          input.style.color = 'rgba(255,255,255,0.55)';
-        }, 3000);
+        setTimeout(resetInput, 3000);
+      });
+    }
+
+    // ── Mobile: Typewriter effect (triggered after loader) ──
+    // Prepare: hide text immediately, store originals
+    var twElements = [];
+    document.querySelectorAll('#mobile-app .glass-card').forEach(function(card) {
+      var elements = card.querySelectorAll('.card-meta-label, .card-meta-value, .card-desc');
+      elements.forEach(function(el) {
+        if (el.id && (el.id.startsWith('nl-') || el.id.startsWith('discord-'))) return;
+        var text = el.textContent;
+        if (!text.trim()) return;
+        el.textContent = '';
+        el.classList.add('typewriter');
+        twElements.push({ el: el, text: text, card: card });
       });
     });
-  </script>
 
-  <script>
-    // Glitch text loader animation
+    window._startTypewriter = function() {
+      var charDelay = 25;
+      var currentCard = null;
+      var cardDelay = 0;
+      twElements.forEach(function(item) {
+        if (item.card !== currentCard) { currentCard = item.card; cardDelay = 100; }
+        (function(element, txt, delay) {
+          setTimeout(function() {
+            element.classList.add('typing');
+            var cursor = document.createElement('span');
+            cursor.className = 'tw-cursor';
+            cursor.innerHTML = '&nbsp;';
+            element.appendChild(cursor);
+            var i = 0;
+            function typeNext() {
+              if (i < txt.length) {
+                element.insertBefore(document.createTextNode(txt[i]), cursor);
+                i++;
+                setTimeout(typeNext, charDelay);
+              } else {
+                setTimeout(function() { cursor.remove(); }, 300);
+              }
+            }
+            typeNext();
+          }, delay);
+        })(item.el, item.text, cardDelay);
+        cardDelay += item.text.length * charDelay + 50;
+      });
+    };
+
+    // ── Mobile: Countdown newsletter ──
+    var countdownEl = document.getElementById('nl-countdown');
+    var dayEl = document.getElementById('nl-next-day');
+    var mois = ['jan', 'fév', 'mar', 'avr', 'mai', 'jun', 'jul', 'aoû', 'sep', 'oct', 'nov', 'déc'];
+    function getNextFridayParis() {
+      var now = new Date();
+      var parts = {};
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false
+      }).formatToParts(now).forEach(function(p) { parts[p.type] = parseInt(p.value); });
+      var parisDay = new Date(parts.year, parts.month - 1, parts.day).getDay();
+      var daysUntil = (5 - parisDay + 7) % 7;
+      if (daysUntil === 0 && parts.hour >= 14) daysUntil = 7;
+      var targetDate = new Date(parts.year, parts.month - 1, parts.day + daysUntil);
+      var targetStr = targetDate.getFullYear() + '-' + String(targetDate.getMonth() + 1).padStart(2, '0') + '-' + String(targetDate.getDate()).padStart(2, '0') + 'T14:00:00';
+      var tempDate = new Date(targetStr + 'Z');
+      var parisAtTarget = new Date(tempDate.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
+      var targetUTC = new Date(tempDate.getTime() - (parisAtTarget - tempDate));
+      return { target: targetUTC, parisDate: targetDate };
+    }
+    function updateCountdown() {
+      var info = getNextFridayParis();
+      var diff = Math.max(0, info.target - new Date());
+      var d = Math.floor(diff / 86400000);
+      var h = Math.floor((diff % 86400000) / 3600000);
+      if (d === 0 && h === 0) countdownEl.textContent = 'maintenant';
+      else if (d === 0) countdownEl.textContent = 'dans ' + h + 'h';
+      else countdownEl.textContent = 'dans ' + d + 'j, ' + h + 'h';
+      var td = info.parisDate;
+      dayEl.textContent = 'Ven ' + td.getDate() + ' ' + mois[td.getMonth()];
+    }
+    updateCountdown();
+    setInterval(updateCountdown, 60000);
+
+    // ── Desktop: Glitch text loader ──
     (function() {
-      const target = 'PromptHQ';
-      const glitchChars = '!@#$%^&*()_+-=[]{}|;:<>?/~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-      const el = document.getElementById('glitch-text');
-      const sub = document.getElementById('loader-sub');
-      const scanlines = document.getElementById('scanlines');
-      const resolved = new Array(target.length).fill(false);
-      // Build initial random chars
+      var target = 'PromptHQ';
+      var glitchChars = '!@#$%^&*()_+-=[]{}|;:<>?/~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      var el = document.getElementById('glitch-text');
+      var sub = document.getElementById('loader-sub');
+      var scanlines = document.getElementById('scanlines');
+      var resolved = new Array(target.length).fill(false);
       function randomChar() { return glitchChars[Math.floor(Math.random() * glitchChars.length)]; }
-
       function render() {
-        let html = '';
-        for (let i = 0; i < target.length; i++) {
-          if (resolved[i]) {
-            html += '<span class="char resolved">' + target[i] + '</span>';
-          } else {
-            html += '<span class="char glitch">' + randomChar() + '</span>';
-          }
+        var html = '';
+        for (var i = 0; i < target.length; i++) {
+          if (resolved[i]) html += '<span class="char resolved">' + target[i] + '</span>';
+          else html += '<span class="char glitch">' + randomChar() + '</span>';
         }
         html += '<span class="loader-cursor"></span>';
         el.innerHTML = html;
       }
-
-      // Scramble unresolved chars every 50ms
-      const scrambleInterval = setInterval(render, 50);
-
-      // Resolve one random unresolved char every ~200ms
-      let resolveCount = 0;
+      var scrambleInterval = setInterval(render, 50);
+      var resolveCount = 0;
       function resolveNext() {
-        const unresolved = [];
-        for (let i = 0; i < target.length; i++) {
-          if (!resolved[i]) unresolved.push(i);
-        }
-        if (unresolved.length === 0) {
-          clearInterval(scrambleInterval);
-          render();
-          return;
-        }
-        const idx = unresolved[Math.floor(Math.random() * unresolved.length)];
+        var unresolved = [];
+        for (var i = 0; i < target.length; i++) { if (!resolved[i]) unresolved.push(i); }
+        if (unresolved.length === 0) { clearInterval(scrambleInterval); render(); return; }
+        var idx = unresolved[Math.floor(Math.random() * unresolved.length)];
         resolved[idx] = true;
         resolveCount++;
         render();
-        // Accelerate toward the end
-        const delay = 120 + Math.random() * 180 - resolveCount * 15;
+        var delay = 120 + Math.random() * 180 - resolveCount * 15;
         setTimeout(resolveNext, Math.max(40, delay));
       }
-
-      // Start after short delay, show scanlines
-      setTimeout(() => {
+      setTimeout(function() {
         scanlines.classList.add('active');
         sub.classList.add('visible');
         setTimeout(resolveNext, 300);
       }, 200);
-
-      // Expose dismiss function for when scene is ready
       window._dismissLoader = function() {
-        // Wait for text to finish resolving, then hide
-        const check = setInterval(() => {
+        function onLoaderHidden() {
+          document.getElementById('loader').classList.add('hidden');
+          scanlines.classList.remove('active');
+          if (window._startTypewriter) { window._startTypewriter(); window._startTypewriter = null; }
+        }
+        var check = setInterval(function() {
           if (resolved.every(Boolean)) {
             clearInterval(check);
             clearInterval(scrambleInterval);
-            setTimeout(() => {
-              document.getElementById('loader').classList.add('hidden');
-              scanlines.classList.remove('active');
-            }, 400);
+            setTimeout(onLoaderHidden, 400);
           }
         }, 100);
-        // Fallback: force hide after 2s regardless
-        setTimeout(() => {
+        setTimeout(function() {
           clearInterval(check);
           clearInterval(scrambleInterval);
-          document.getElementById('loader').classList.add('hidden');
-          scanlines.classList.remove('active');
+          onLoaderHidden();
         }, 2000);
       };
     })();
   </script>
 
+  <!-- ===== Three.js ===== -->
   <script type="importmap">
   {
     "imports": {
@@ -515,300 +683,34 @@
     import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-    const maxDPR = 2;
+    // ════════════════════════════════════════════
+    //  SHARED SETUP
+    // ════════════════════════════════════════════
+    const MOBILE_BREAKPOINT = 768;
+    let currentMode = innerWidth <= MOBILE_BREAKPOINT ? 'mobile' : 'desktop';
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000000);
+    const maxDPR_desktop = 2;
+    const maxDPR_mobile = 1.5;
+    function getMaxDPR() { return currentMode === 'mobile' ? maxDPR_mobile : maxDPR_desktop; }
 
-    const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 100);
-    camera.position.set(0, 0, 7);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: currentMode === 'desktop' });
     renderer.setSize(innerWidth, innerHeight);
-    renderer.setPixelRatio(Math.min(devicePixelRatio, maxDPR));
-    document.body.appendChild(renderer.domElement);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, getMaxDPR()));
+    document.body.insertBefore(renderer.domElement, document.body.firstChild);
 
-    // ── GPU Fluid Simulation (Navier-Stokes) ──
-    const FLUID_SIZE = 128;
-    const fluidOpts = {
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter,
-      format: THREE.RGBAFormat,
-      type: THREE.HalfFloatType,
-      depthBuffer: false,
-      stencilBuffer: false,
-    };
-    let fluidRT_A = new THREE.WebGLRenderTarget(FLUID_SIZE, FLUID_SIZE, fluidOpts);
-    let fluidRT_B = new THREE.WebGLRenderTarget(FLUID_SIZE, FLUID_SIZE, fluidOpts);
-    let curlRT = new THREE.WebGLRenderTarget(FLUID_SIZE, FLUID_SIZE, fluidOpts);
-
-    const fluidQuadGeo = new THREE.PlaneGeometry(2, 2);
-    const fluidOrtho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-
-    // Fluid pointer state
-    const pointerPos = new THREE.Vector2(0.5, 0.5);
-    const pointerVec = new THREE.Vector2(0, 0);
-    const prevPointerPos = new THREE.Vector2(0.5, 0.5);
-
-    // Common fluid vertex shader
-    const fluidVertShader = /* glsl */`
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = vec4(position.xy, 0.0, 1.0);
-      }
-    `;
-
-    // Pass 1: Curl (vorticity)
-    const curlMat = new THREE.ShaderMaterial({
-      vertexShader: fluidVertShader,
-      fragmentShader: /* glsl */`
-        precision highp float;
-        uniform sampler2D dataTex;
-        uniform vec2 dataSize;
-        varying vec2 vUv;
-        void main() {
-          vec2 fc = gl_FragCoord.xy;
-          float L = texture2D(dataTex, (fc - vec2(1.0, 0.0)) / dataSize).y;
-          float R = texture2D(dataTex, (fc + vec2(1.0, 0.0)) / dataSize).y;
-          float T = texture2D(dataTex, (fc + vec2(0.0, 1.0)) / dataSize).x;
-          float B = texture2D(dataTex, (fc - vec2(0.0, 1.0)) / dataSize).x;
-          float curl = (R - L) - (T - B);
-          gl_FragColor = vec4(curl * 0.5 + 0.5, 0.0, 0.0, 1.0);
-        }
-      `,
-      uniforms: {
-        dataTex: { value: null },
-        dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) },
-      },
-    });
-
-    // Pass 2: Velocity (vorticity confinement + mouse injection)
-    const velocityMat = new THREE.ShaderMaterial({
-      vertexShader: fluidVertShader,
-      fragmentShader: /* glsl */`
-        precision highp float;
-        uniform sampler2D dataTex;
-        uniform sampler2D curlTex;
-        uniform vec2 dataSize;
-        uniform vec2 pointerPos;
-        uniform vec2 pointerVec;
-        uniform float dt;
-        varying vec2 vUv;
-        void main() {
-          vec2 fc = gl_FragCoord.xy;
-          vec2 uv = fc / dataSize;
-          vec4 data = texture2D(dataTex, uv);
-          vec2 vel = data.xy;
-
-          // Vorticity confinement
-          float cL = texture2D(curlTex, (fc - vec2(1.0, 0.0)) / dataSize).x - 0.5;
-          float cR = texture2D(curlTex, (fc + vec2(1.0, 0.0)) / dataSize).x - 0.5;
-          float cT = texture2D(curlTex, (fc + vec2(0.0, 1.0)) / dataSize).x - 0.5;
-          float cB = texture2D(curlTex, (fc - vec2(0.0, 1.0)) / dataSize).x - 0.5;
-          float cC = texture2D(curlTex, uv).x - 0.5;
-
-          vec2 force = vec2(abs(cT) - abs(cB), abs(cR) - abs(cL));
-          float fLen = length(force);
-          force = fLen > 0.0001 ? force / fLen : vec2(0.0);
-          vel += force * cC * 0.15 * dt;
-
-          // Mouse injection
-          float pv = length(pointerVec);
-          float splatRadius = 0.03 + 0.15 * min(1.0, pv);
-          float dist = distance(uv, pointerPos);
-          float splat = exp(-dist * dist / (splatRadius * splatRadius));
-          vel += pointerVec * splat * 80.0 * dt;
-
-          gl_FragColor = vec4(vel, data.zw);
-        }
-      `,
-      uniforms: {
-        dataTex: { value: null },
-        curlTex: { value: null },
-        dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) },
-        pointerPos: { value: pointerPos },
-        pointerVec: { value: pointerVec },
-        dt: { value: 0.016 },
-      },
-    });
-
-    // Pass 3: Divergence (store in .w channel)
-    const divergenceMat = new THREE.ShaderMaterial({
-      vertexShader: fluidVertShader,
-      fragmentShader: /* glsl */`
-        precision highp float;
-        uniform sampler2D dataTex;
-        uniform vec2 dataSize;
-        varying vec2 vUv;
-        void main() {
-          vec2 fc = gl_FragCoord.xy;
-          vec2 uv = fc / dataSize;
-          vec4 data = texture2D(dataTex, uv);
-          float L = texture2D(dataTex, (fc - vec2(1.0, 0.0)) / dataSize).x;
-          float R = texture2D(dataTex, (fc + vec2(1.0, 0.0)) / dataSize).x;
-          float T = texture2D(dataTex, (fc + vec2(0.0, 1.0)) / dataSize).y;
-          float B = texture2D(dataTex, (fc - vec2(0.0, 1.0)) / dataSize).y;
-          float div = -0.5 * (R - L + T - B);
-          gl_FragColor = vec4(data.xy, 0.0, div);
-        }
-      `,
-      uniforms: {
-        dataTex: { value: null },
-        dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) },
-      },
-    });
-
-    // Pass 4: Pressure (Jacobi iteration)
-    const pressureMat = new THREE.ShaderMaterial({
-      vertexShader: fluidVertShader,
-      fragmentShader: /* glsl */`
-        precision highp float;
-        uniform sampler2D dataTex;
-        uniform vec2 dataSize;
-        varying vec2 vUv;
-        void main() {
-          vec2 fc = gl_FragCoord.xy;
-          vec2 uv = fc / dataSize;
-          vec4 data = texture2D(dataTex, uv);
-          float pL = texture2D(dataTex, (fc - vec2(1.0, 0.0)) / dataSize).z;
-          float pR = texture2D(dataTex, (fc + vec2(1.0, 0.0)) / dataSize).z;
-          float pT = texture2D(dataTex, (fc + vec2(0.0, 1.0)) / dataSize).z;
-          float pB = texture2D(dataTex, (fc - vec2(0.0, 1.0)) / dataSize).z;
-          float pressure = (pL + pR + pT + pB + data.w) * 0.25;
-          gl_FragColor = vec4(data.xy, pressure, data.w);
-        }
-      `,
-      uniforms: {
-        dataTex: { value: null },
-        dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) },
-      },
-    });
-
-    // Pass 5: Gradient Subtract
-    const gradSubMat = new THREE.ShaderMaterial({
-      vertexShader: fluidVertShader,
-      fragmentShader: /* glsl */`
-        precision highp float;
-        uniform sampler2D dataTex;
-        uniform vec2 dataSize;
-        varying vec2 vUv;
-        void main() {
-          vec2 fc = gl_FragCoord.xy;
-          vec2 uv = fc / dataSize;
-          vec4 data = texture2D(dataTex, uv);
-          vec2 vel = data.xy;
-          float pL = texture2D(dataTex, (fc - vec2(1.0, 0.0)) / dataSize).z;
-          float pR = texture2D(dataTex, (fc + vec2(1.0, 0.0)) / dataSize).z;
-          float pT = texture2D(dataTex, (fc + vec2(0.0, 1.0)) / dataSize).z;
-          float pB = texture2D(dataTex, (fc - vec2(0.0, 1.0)) / dataSize).z;
-          vel -= 0.5 * vec2(pR - pL, pT - pB);
-          gl_FragColor = vec4(vel, data.zw);
-        }
-      `,
-      uniforms: {
-        dataTex: { value: null },
-        dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) },
-      },
-    });
-
-    // Pass 6: Advect (Semi-Lagrangian)
-    const advectMat = new THREE.ShaderMaterial({
-      vertexShader: fluidVertShader,
-      fragmentShader: /* glsl */`
-        precision highp float;
-        uniform sampler2D dataTex;
-        uniform vec2 dataSize;
-        uniform float dt;
-        varying vec2 vUv;
-        void main() {
-          vec2 fc = gl_FragCoord.xy;
-          vec2 uv = fc / dataSize;
-          vec2 vel = texture2D(dataTex, uv).xy;
-          vec2 prevUv = (fc - vel * dt * dataSize) / dataSize;
-          vec4 result = texture2D(dataTex, prevUv);
-          result.xy *= 0.995; // dissipation
-          gl_FragColor = result;
-        }
-      `,
-      uniforms: {
-        dataTex: { value: null },
-        dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) },
-        dt: { value: 0.016 },
-      },
-    });
-
-    const fluidQuad = new THREE.Mesh(fluidQuadGeo, curlMat);
-    const fluidScene = new THREE.Scene();
-    fluidScene.add(fluidQuad);
-
-    function runFluidPass(mat, output) {
-      fluidQuad.material = mat;
-      renderer.setRenderTarget(output);
-      renderer.render(fluidScene, fluidOrtho);
-    }
-
-    // Quaternion rotation state
-    const mouseRotQuat = new THREE.Quaternion();
-    const autoSpinTarget = new THREE.Quaternion();
-    const autoSpinAxis = new THREE.Vector3(0, 0, 1);
-    const tempEuler = new THREE.Euler(0, 0, 0);
-    let hoverVelX = 0, hoverVelY = 0;
-    let autoSpinAngle = 0;
-    let prevAnimTime = 0;
-
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmrem.fromScene(new RoomEnvironment()).texture;
-    pmrem.dispose();
-
-    // ── Render target for refraction (2-pass rendering) ──
-    const rtW = Math.floor(innerWidth * Math.min(devicePixelRatio, maxDPR));
-    const rtH = Math.floor(innerHeight * Math.min(devicePixelRatio, maxDPR));
-    const backgroundRT = new THREE.WebGLRenderTarget(rtW, rtH, {
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter,
-      format: THREE.RGBAFormat,
-    });
-
-    // ── Bloom pipeline render targets ──
-    const sceneRT = new THREE.WebGLRenderTarget(rtW, rtH, {
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter,
-      format: THREE.RGBAFormat,
-    });
-
-    let bw1 = Math.floor(rtW / 4), bh1 = Math.floor(rtH / 4);
-    let bw2 = Math.floor(rtW / 8), bh2 = Math.floor(rtH / 8);
-    let bw3 = Math.floor(rtW / 16), bh3 = Math.floor(rtH / 16);
-    const bloomOpts = {
-      minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
-      format: THREE.RGBAFormat, type: THREE.HalfFloatType,
-      depthBuffer: false, stencilBuffer: false,
-    };
-
-    const bloomBrightRT = new THREE.WebGLRenderTarget(bw1, bh1, bloomOpts);
-    const bloom0H = new THREE.WebGLRenderTarget(bw1, bh1, bloomOpts);
-    const bloom0V = new THREE.WebGLRenderTarget(bw1, bh1, bloomOpts);
-    const bloom1H = new THREE.WebGLRenderTarget(bw2, bh2, bloomOpts);
-    const bloom1V = new THREE.WebGLRenderTarget(bw2, bh2, bloomOpts);
-    const bloom2H = new THREE.WebGLRenderTarget(bw3, bh3, bloomOpts);
-    const bloom2V = new THREE.WebGLRenderTarget(bw3, bh3, bloomOpts);
-
-    // ── Noise texture (256x256 random RGBA via Canvas2D) ──
+    // Shared noise texture
     const noiseCanvas = document.createElement('canvas');
     noiseCanvas.width = noiseCanvas.height = 256;
     const noiseCtx = noiseCanvas.getContext('2d');
     const noiseData = noiseCtx.createImageData(256, 256);
-    for (let i = 0; i < noiseData.data.length; i++) {
-      noiseData.data[i] = Math.random() * 255;
-    }
+    for (let i = 0; i < noiseData.data.length; i++) noiseData.data[i] = Math.random() * 255;
     noiseCtx.putImageData(noiseData, 0, 0);
     const noiseTex = new THREE.CanvasTexture(noiseCanvas);
     noiseTex.wrapS = noiseTex.wrapT = THREE.RepeatWrapping;
     noiseTex.magFilter = THREE.NearestFilter;
     noiseTex.minFilter = THREE.NearestFilter;
 
-    // ── Logo texture for tile overlay (white text on transparent) ──
+    // Shared logo tile texture
     const logoCanvas = document.createElement('canvas');
     logoCanvas.width = 1024; logoCanvas.height = 256;
     const logoCtx = logoCanvas.getContext('2d');
@@ -822,328 +724,80 @@
     logoTileTex.wrapS = logoTileTex.wrapT = THREE.RepeatWrapping;
     logoTileTex.minFilter = THREE.LinearFilter;
 
-    // ── BGQuadTree — Instanced cube tiles on a cylinder ──
+    // Shared fullscreen vertex shader
+    const fullscreenVert = /* glsl */`
+      varying vec2 vUv;
+      void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }
+    `;
 
-    // Quad-tree subdivision: recursively split a rectangle into 4 children
-    function buildQuadTree(x, y, w, h, depth, maxDepth, tiles) {
-      // Random split probability decreases with depth
-      const splitProb = [0.5, 0.3, 0.15, 0.05];
-      if (depth >= maxDepth || Math.random() > (splitProb[depth] || 0.1)) {
-        // Leaf node → emit a tile
-        tiles.push({ x, y, w, h });
-        return;
-      }
-      const hw = w / 2, hh = h / 2;
-      buildQuadTree(x,      y,      hw, hh, depth + 1, maxDepth, tiles);
-      buildQuadTree(x + hw, y,      hw, hh, depth + 1, maxDepth, tiles);
-      buildQuadTree(x,      y + hh, hw, hh, depth + 1, maxDepth, tiles);
-      buildQuadTree(x + hw, y + hh, hw, hh, depth + 1, maxDepth, tiles);
+    // Shared bloom quad
+    const bloomQuadGeo = new THREE.PlaneGeometry(2, 2);
+    const bloomQuad = new THREE.Mesh(bloomQuadGeo);
+    const bloomScene = new THREE.Scene();
+    bloomScene.add(bloomQuad);
+    const bloomOrtho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+    function runBloomPass(mat, target) {
+      bloomQuad.material = mat;
+      renderer.setRenderTarget(target);
+      renderer.render(bloomScene, bloomOrtho);
     }
 
-    // Generate tiles over an 8×6 base grid
-    const tiles = [];
-    const baseCols = 8, baseRows = 6;
-    for (let r = 0; r < baseRows; r++) {
-      for (let c = 0; c < baseCols; c++) {
-        buildQuadTree(c / baseCols, r / baseRows, 1 / baseCols, 1 / baseRows, 0, 2, tiles);
-      }
-    }
-
-    // Build InstancedBufferGeometry from a BoxGeometry template
-    const tileBox = new THREE.BoxGeometry(1, 1, 1);
-    const tileGeo = new THREE.InstancedBufferGeometry();
-    tileGeo.index = tileBox.index;
-    tileGeo.attributes.position = tileBox.attributes.position;
-    tileGeo.attributes.normal = tileBox.attributes.normal;
-    tileGeo.attributes.uv = tileBox.attributes.uv;
-
-    const instanceCount = tiles.length;
-    const aPos = new Float32Array(instanceCount * 2);    // center in 0..1 UV space
-    const aScale = new Float32Array(instanceCount * 2);  // size in 0..1 UV space
-    const aRand = new Float32Array(instanceCount * 4);   // random per-instance IDs
-
-    for (let i = 0; i < instanceCount; i++) {
-      const t = tiles[i];
-      aPos[i * 2]     = t.x + t.w * 0.5;  // center X (0..1)
-      aPos[i * 2 + 1] = t.y + t.h * 0.5;  // center Y (0..1)
-      aScale[i * 2]     = t.w;
-      aScale[i * 2 + 1] = t.h;
-      aRand[i * 4]     = Math.random();
-      aRand[i * 4 + 1] = Math.random();
-      aRand[i * 4 + 2] = Math.random();
-      aRand[i * 4 + 3] = Math.random();
-    }
-
-    tileGeo.setAttribute('aPos',   new THREE.InstancedBufferAttribute(aPos, 2));
-    tileGeo.setAttribute('aScale', new THREE.InstancedBufferAttribute(aScale, 2));
-    tileGeo.setAttribute('aRand',  new THREE.InstancedBufferAttribute(aRand, 4));
-    tileGeo.instanceCount = instanceCount;
-
-    // Tile vertex shader — cylindrical wrapping matching the grid
+    // ════════════════════════════════════════════
+    //  TILE SHADERS (shared between desktop & mobile)
+    // ════════════════════════════════════════════
     const tileVertShader = /* glsl */`
-      attribute vec2 aPos;    // tile center in 0..1
-      attribute vec2 aScale;  // tile size in 0..1
-      attribute vec4 aRand;   // random per-instance
-
-      uniform vec3 uScale;    // same as grid: vec3(14, 10, 1)
-
+      attribute vec2 aPos;
+      attribute vec2 aScale;
+      attribute vec4 aRand;
+      uniform vec3 uScale;
       varying vec2 vUv;
       varying vec2 vGlobalUv;
       varying float vSideFace;
       varying vec4 vInstanceID;
-
       #define PI 3.14159265359
-
       void main() {
         vUv = uv;
         vInstanceID = aRand;
-
-        // Local vertex in box [-0.5..0.5]
         vec3 localV = position;
-
-        // Detect side face: front/back faces have |normal.z| close to 1
         vSideFace = step(0.5, abs(normal.z));
-
-        // Scale box to tile size (in 0..1 UV -> world units)
-        // Gap between tiles: shrink slightly (0.92 keeps a visible gap)
         float gap = 0.92;
         float tileW = aScale.x * gap;
         float tileH = aScale.y * gap;
-        float tileDepth = min(aScale.x, aScale.y) * 0.8; // depth proportional to smallest dim
-
+        float tileDepth = min(aScale.x, aScale.y) * 0.8;
         localV.x *= tileW;
         localV.y *= tileH;
         localV.z *= tileDepth;
-
-        // Position in 0..1 UV space -> -0.5..0.5 centered
         float uvX = aPos.x + localV.x - 0.5;
         float uvY = aPos.y + localV.y - 0.5;
-
-        // Global UV for later use
         vGlobalUv = vec2(aPos.x + localV.x, aPos.y + localV.y);
-
-        // Cylindrical wrap (matching grid: theta = localPos.x * PI)
         float theta = uvX * PI;
         float radius = uScale.x * 0.5;
-        float depth = localV.z; // front/back offset
-
+        float depth = localV.z;
         vec3 pos = vec3(
           sin(theta) * (radius + depth),
           uvY * uScale.y * 1.5,
           -cos(theta) * (radius + depth)
         );
-
         gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
       }
     `;
 
-    // Tile fragment shader — 3 animated patterns + halftone + fluid emission
-    const tileFragShader = /* glsl */`
-      varying vec2 vUv;
-      varying vec2 vGlobalUv;
-      varying float vSideFace;
-      varying vec4 vInstanceID;
-      uniform sampler2D uFluidsTex;
-      uniform sampler2D uNoiseTex;
-      uniform sampler2D uLogoTex;
-      uniform float uTime;
-
-      void main() {
-        // Animated noise UV — scroll direction per tile based on vInstanceID
-        vec2 noiseUv = vGlobalUv * 4.0 + vInstanceID.xy * 0.3;
-        // Some tiles scroll horizontally, others vertically
-        float scrollDir = step(0.5, vInstanceID.w);
-        noiseUv.x += uTime * 0.08 * scrollDir * (vInstanceID.x - 0.5) * 2.0;
-        noiseUv.y += uTime * 0.08 * (1.0 - scrollDir) * (vInstanceID.y - 0.5) * 2.0;
-
-        vec4 noise = texture2D(uNoiseTex, noiseUv);
-
-        // Select pattern type: 3 patterns split by vInstanceID.x
-        float patternId = floor(vInstanceID.x * 3.0); // 0, 1, or 2
-
-        vec3 faceColor = vec3(0.0);
-
-        // Brand colors: woodsmoke #F82F02, scarlet #FF9054, jaffa #FFC0A4
-        vec3 woodsmoke = vec3(0.973, 0.184, 0.008); // #F82F02
-        vec3 scarlet   = vec3(1.0, 0.565, 0.329);   // #FF9054
-        vec3 jaffa     = vec3(1.0, 0.753, 0.643);   // #FFC0A4
-
-        if (patternId < 1.0) {
-          // Pattern 1: Orange noise
-          faceColor.r += step(0.3, noise.x);
-          faceColor.g += step(0.5, noise.y);
-          faceColor.b += step(0.7, noise.z);
-          faceColor *= woodsmoke;
-        } else if (patternId < 2.0) {
-          // Pattern 2: Binary red/black grid
-          float w = fract(noise.w * 9.0);
-          w = step(0.5, w);
-          faceColor = mix(vec3(0.0), woodsmoke, w);
-        } else {
-          // Pattern 3: Red gradient (woodsmoke → scarlet)
-          vec3 c = woodsmoke;
-          c = mix(c, scarlet, step(0.5, noise.w));
-          c = mix(c, woodsmoke * 1.2, step(0.7, noise.y));
-          faceColor = c;
-        }
-
-        // Tile brightness
-        faceColor *= 0.35 + vInstanceID.z * 0.15;
-
-        // Logo overlay — 3 display modes spanning across tiles (Alche-style)
-        float logoMode = floor(vInstanceID.y * 3.0); // 0, 1, or 2
-        vec2 logoUv = vec2(0.0);
-        float aspect = 1024.0 / 256.0; // logo texture aspect ratio
-
-        if (logoMode < 1.0) {
-          // Mode 0: Tiled scrolling — rows shift with sin()
-          logoUv = vGlobalUv;
-          logoUv -= 0.5;
-          logoUv.y *= aspect;
-          logoUv += 0.5;
-          vec2 tileUv = logoUv * 2.0;
-          tileUv.x += sin(floor(tileUv.y) * 3.0 + uTime * 0.5) * 0.15;
-          logoUv = fract(tileUv) * 1.3;
-        } else if (logoMode < 2.0) {
-          // Mode 1: Single horizontal scroll
-          logoUv = vGlobalUv;
-          logoUv -= 0.5;
-          logoUv.y *= aspect;
-          logoUv *= 1.1;
-          logoUv += 0.5;
-          vec2 tileUv = logoUv;
-          tileUv.x += uTime * 0.06;
-          logoUv = fract(tileUv);
-        } else {
-          // Mode 2: Vertical scroll per instance
-          logoUv = vUv;
-          logoUv -= 0.5;
-          logoUv.x /= aspect;
-          logoUv += 0.5;
-          logoUv.y -= uTime * 0.3 * vInstanceID.x;
-          logoUv.y = fract(logoUv.y);
-          logoUv -= 0.5;
-          logoUv *= 1.3 + vInstanceID.z * 3.0;
-          logoUv += 0.5;
-          logoUv.x -= 0.38;
-          if (logoUv.x > 0.24 || logoUv.x < 0.0 || logoUv.y > 1.0 || logoUv.y < 0.0) {
-            logoUv = vec2(0.0);
-          }
-        }
-
-        vec4 logo = texture2D(uLogoTex, logoUv);
-        float logoW = step(0.5, logo.a) * step(0.0, logoUv.y) * step(logoUv.y, 1.0);
-        // Flicker: per-tile random frequency + sin(uTime)
-        float flicker = step(0.3, sin(uTime * (2.0 + vInstanceID.w * 8.0) + vInstanceID.x * 6.28));
-        faceColor += logoW * 0.25 * flicker;
-
-        // Per-tile vignette
-        float tileVignette = smoothstep(1.9, 0.1, length((vUv - 0.5) * 2.0));
-        faceColor *= tileVignette;
-
-        // Side faces: fluid emission
-        vec4 fluids = texture2D(uFluidsTex, vGlobalUv);
-        float fluidStrength = length(fluids.xy);
-        vec3 sideColor = vec3(0.08, 0.09, 0.12);
-        sideColor += 3.0 * fluidStrength;
-
-        vec3 col = mix(sideColor, faceColor, vSideFace);
-
-        // Halftone dots (CRT screen texture) — front faces only, sharp edges
-        float dotw = step(length(fract(vGlobalUv * 1800.0 * 0.23) - 0.5), 0.35);
-        dotw = mix(dotw, 1.0, 0.5) * 0.9;
-        col *= mix(1.0, dotw, vSideFace);
-
-        // Global vignette
-        col *= smoothstep(0.55, 0.05, length(vGlobalUv - 0.5));
-
-        gl_FragColor = vec4(col, 1.0);
-      }
-    `;
-
-    const tileMat = new THREE.ShaderMaterial({
-      vertexShader: tileVertShader,
-      fragmentShader: tileFragShader,
-      uniforms: {
-        uScale: { value: new THREE.Vector3(14, 10, 1) },
-        uFluidsTex: { value: null },
-        uNoiseTex: { value: noiseTex },
-        uLogoTex: { value: logoTileTex },
-        uTime: { value: 0 },
-      },
-      side: THREE.DoubleSide,
-    });
-
-    const tileMesh = new THREE.Mesh(tileGeo, tileMat);
-    scene.add(tileMesh);
-
-    // ── Crosshairs at tile intersections ──
-
-    // Collect unique corner positions from quad-tree tiles
-    const cornerSet = new Set();
-    const corners = [];
-    for (const t of tiles) {
-      const pts = [
-        [t.x, t.y], [t.x + t.w, t.y],
-        [t.x, t.y + t.h], [t.x + t.w, t.y + t.h],
-      ];
-      for (const [cx, cy] of pts) {
-        const key = cx.toFixed(6) + ',' + cy.toFixed(6);
-        if (!cornerSet.has(key)) {
-          cornerSet.add(key);
-          corners.push({ x: cx, y: cy });
-        }
-      }
-    }
-
-    // Instanced crosshair geometry (small plane per cross)
-    const crossBase = new THREE.PlaneGeometry(1, 1);
-    const crossGeo = new THREE.InstancedBufferGeometry();
-    crossGeo.index = crossBase.index;
-    crossGeo.attributes.position = crossBase.attributes.position;
-    crossGeo.attributes.uv = crossBase.attributes.uv;
-    crossGeo.attributes.normal = crossBase.attributes.normal;
-
-    const crossPositions = new Float32Array(corners.length * 2);
-    for (let i = 0; i < corners.length; i++) {
-      crossPositions[i * 2] = corners[i].x;
-      crossPositions[i * 2 + 1] = corners[i].y;
-    }
-    crossGeo.setAttribute('aCrossPos', new THREE.InstancedBufferAttribute(crossPositions, 2));
-    crossGeo.instanceCount = corners.length;
-
     const crossVertShader = /* glsl */`
-      attribute vec2 aCrossPos; // corner position in 0..1 UV
+      attribute vec2 aCrossPos;
       uniform vec3 uScale;
       varying vec2 vUv;
-
       #define PI 3.14159265359
-
-      mat2 rotate(float rad) {
-        return mat2(cos(rad), sin(rad), -sin(rad), cos(rad));
-      }
-
+      mat2 rotate(float rad) { return mat2(cos(rad), sin(rad), -sin(rad), cos(rad)); }
       void main() {
         vUv = uv;
-
-        // Corner in centered UV space
         float uvX = aCrossPos.x - 0.5;
         float uvY = aCrossPos.y - 0.5;
         float theta = uvX * PI;
         float radius = uScale.x * 0.5;
-
-        // Small cross plane scaled to ~0.15 units
         vec3 localPos = position * 0.15;
-        // Rotate to be tangent to cylinder surface
         localPos.xz *= rotate(-theta);
-
-        // Place on cylinder at tile front face depth
-        vec3 cylPos = vec3(
-          sin(theta) * radius,
-          uvY * uScale.y * 1.5,
-          -cos(theta) * radius
-        );
-
+        vec3 cylPos = vec3(sin(theta) * radius, uvY * uScale.y * 1.5, -cos(theta) * radius);
         vec3 pos = cylPos + localPos;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
       }
@@ -1151,12 +805,9 @@
 
     const crossFragShader = /* glsl */`
       varying vec2 vUv;
-
       void main() {
-        // Render + shape from UV
         vec2 uv = vUv - 0.5;
-        float armW = 0.03; // arm thickness
-        float armL = 0.4;  // arm length
+        float armW = 0.03, armL = 0.4;
         float crossH = step(abs(uv.y), armW) * step(abs(uv.x), armL);
         float crossV = step(abs(uv.x), armW) * step(abs(uv.y), armL);
         float cross = max(crossH, crossV);
@@ -1165,164 +816,433 @@
       }
     `;
 
-    const crossMat = new THREE.ShaderMaterial({
-      vertexShader: crossVertShader,
-      fragmentShader: crossFragShader,
-      uniforms: {
-        uScale: { value: new THREE.Vector3(14, 10, 1) },
-      },
-      transparent: true,
-      depthWrite: false,
-      side: THREE.DoubleSide,
+    // Quad-tree builder
+    function buildQuadTree(x, y, w, h, depth, maxDepth, tiles) {
+      const splitProb = [0.5, 0.3, 0.15, 0.05];
+      if (depth >= maxDepth || Math.random() > (splitProb[depth] || 0.1)) {
+        tiles.push({ x, y, w, h });
+        return;
+      }
+      const hw = w / 2, hh = h / 2;
+      buildQuadTree(x, y, hw, hh, depth + 1, maxDepth, tiles);
+      buildQuadTree(x + hw, y, hw, hh, depth + 1, maxDepth, tiles);
+      buildQuadTree(x, y + hh, hw, hh, depth + 1, maxDepth, tiles);
+      buildQuadTree(x + hw, y + hh, hw, hh, depth + 1, maxDepth, tiles);
+    }
+
+    function buildTileScene(baseCols, baseRows, uScaleVec, hasFluid) {
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x000000);
+
+      const tiles = [];
+      for (let r = 0; r < baseRows; r++) {
+        for (let c = 0; c < baseCols; c++) {
+          buildQuadTree(c / baseCols, r / baseRows, 1 / baseCols, 1 / baseRows, 0, 2, tiles);
+        }
+      }
+
+      const tileBox = new THREE.BoxGeometry(1, 1, 1);
+      const tileGeo = new THREE.InstancedBufferGeometry();
+      tileGeo.index = tileBox.index;
+      tileGeo.attributes.position = tileBox.attributes.position;
+      tileGeo.attributes.normal = tileBox.attributes.normal;
+      tileGeo.attributes.uv = tileBox.attributes.uv;
+
+      const instanceCount = tiles.length;
+      const aPos = new Float32Array(instanceCount * 2);
+      const aScale = new Float32Array(instanceCount * 2);
+      const aRand = new Float32Array(instanceCount * 4);
+
+      for (let i = 0; i < instanceCount; i++) {
+        const t = tiles[i];
+        aPos[i * 2] = t.x + t.w * 0.5;
+        aPos[i * 2 + 1] = t.y + t.h * 0.5;
+        aScale[i * 2] = t.w;
+        aScale[i * 2 + 1] = t.h;
+        aRand[i * 4] = Math.random();
+        aRand[i * 4 + 1] = Math.random();
+        aRand[i * 4 + 2] = Math.random();
+        aRand[i * 4 + 3] = Math.random();
+      }
+
+      tileGeo.setAttribute('aPos', new THREE.InstancedBufferAttribute(aPos, 2));
+      tileGeo.setAttribute('aScale', new THREE.InstancedBufferAttribute(aScale, 2));
+      tileGeo.setAttribute('aRand', new THREE.InstancedBufferAttribute(aRand, 4));
+      tileGeo.instanceCount = instanceCount;
+
+      const tileFragShader = /* glsl */`
+        varying vec2 vUv; varying vec2 vGlobalUv; varying float vSideFace; varying vec4 vInstanceID;
+        #ifdef HAS_FLUID
+        uniform sampler2D uFluidsTex;
+        #endif
+        uniform sampler2D uNoiseTex; uniform sampler2D uLogoTex; uniform float uTime;
+        void main() {
+          vec2 noiseUv = vGlobalUv * 4.0 + vInstanceID.xy * 0.3;
+          float scrollDir = step(0.5, vInstanceID.w);
+          noiseUv.x += uTime * 0.08 * scrollDir * (vInstanceID.x - 0.5) * 2.0;
+          noiseUv.y += uTime * 0.08 * (1.0 - scrollDir) * (vInstanceID.y - 0.5) * 2.0;
+          vec4 noise = texture2D(uNoiseTex, noiseUv);
+          float patternId = floor(vInstanceID.x * 3.0);
+          vec3 faceColor = vec3(0.0);
+          vec3 woodsmoke = vec3(0.973, 0.184, 0.008);
+          vec3 scarlet = vec3(1.0, 0.565, 0.329);
+          if (patternId < 1.0) {
+            faceColor.r += step(0.3, noise.x); faceColor.g += step(0.5, noise.y); faceColor.b += step(0.7, noise.z);
+            faceColor *= woodsmoke;
+          } else if (patternId < 2.0) {
+            float w = fract(noise.w * 9.0); w = step(0.5, w); faceColor = mix(vec3(0.0), woodsmoke, w);
+          } else {
+            vec3 c = woodsmoke; c = mix(c, scarlet, step(0.5, noise.w)); c = mix(c, woodsmoke * 1.2, step(0.7, noise.y)); faceColor = c;
+          }
+          faceColor *= 0.35 + vInstanceID.z * 0.15;
+          float logoMode = floor(vInstanceID.y * 3.0);
+          vec2 logoUv = vec2(0.0);
+          float aspect = 1024.0 / 256.0;
+          if (logoMode < 1.0) {
+            logoUv = vGlobalUv; logoUv -= 0.5; logoUv.y *= aspect; logoUv += 0.5;
+            vec2 tileUv = logoUv * 2.0; tileUv.x += sin(floor(tileUv.y) * 3.0 + uTime * 0.5) * 0.15;
+            logoUv = fract(tileUv) * 1.3;
+          } else if (logoMode < 2.0) {
+            logoUv = vGlobalUv; logoUv -= 0.5; logoUv.y *= aspect; logoUv *= 1.1; logoUv += 0.5;
+            vec2 tileUv = logoUv; tileUv.x += uTime * 0.06; logoUv = fract(tileUv);
+          } else {
+            logoUv = vUv; logoUv -= 0.5; logoUv.x /= aspect; logoUv += 0.5;
+            logoUv.y -= uTime * 0.3 * vInstanceID.x; logoUv.y = fract(logoUv.y);
+            logoUv -= 0.5; logoUv *= 1.3 + vInstanceID.z * 3.0; logoUv += 0.5; logoUv.x -= 0.38;
+            if (logoUv.x > 0.24 || logoUv.x < 0.0 || logoUv.y > 1.0 || logoUv.y < 0.0) logoUv = vec2(0.0);
+          }
+          vec4 logo = texture2D(uLogoTex, logoUv);
+          float logoW = step(0.5, logo.a) * step(0.0, logoUv.y) * step(logoUv.y, 1.0);
+          float flicker = step(0.3, sin(uTime * (2.0 + vInstanceID.w * 8.0) + vInstanceID.x * 6.28));
+          faceColor += logoW * 0.25 * flicker;
+          float tileVignette = smoothstep(1.9, 0.1, length((vUv - 0.5) * 2.0));
+          faceColor *= tileVignette;
+          vec3 sideColor = vec3(0.08, 0.09, 0.12);
+          #ifdef HAS_FLUID
+          vec4 fluids = texture2D(uFluidsTex, vGlobalUv);
+          sideColor += 3.0 * length(fluids.xy);
+          #endif
+          vec3 col = mix(sideColor, faceColor, vSideFace);
+          float dotw = step(length(fract(vGlobalUv * 1800.0 * 0.23) - 0.5), 0.35);
+          dotw = mix(dotw, 1.0, 0.5) * 0.9;
+          col *= mix(1.0, dotw, vSideFace);
+          col *= smoothstep(0.55, 0.05, length(vGlobalUv - 0.5));
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `;
+
+      const uniforms = {
+        uScale: { value: uScaleVec },
+        uNoiseTex: { value: noiseTex },
+        uLogoTex: { value: logoTileTex },
+        uTime: { value: 0 },
+      };
+      if (hasFluid) uniforms.uFluidsTex = { value: null };
+
+      const tileMat = new THREE.ShaderMaterial({
+        vertexShader: tileVertShader,
+        fragmentShader: tileFragShader,
+        uniforms,
+        defines: hasFluid ? { HAS_FLUID: '' } : {},
+        side: THREE.DoubleSide,
+      });
+
+      scene.add(new THREE.Mesh(tileGeo, tileMat));
+
+      // Crosshairs
+      const cornerSet = new Set();
+      const corners = [];
+      for (const t of tiles) {
+        for (const [cx, cy] of [[t.x, t.y], [t.x + t.w, t.y], [t.x, t.y + t.h], [t.x + t.w, t.y + t.h]]) {
+          const key = cx.toFixed(6) + ',' + cy.toFixed(6);
+          if (!cornerSet.has(key)) { cornerSet.add(key); corners.push({ x: cx, y: cy }); }
+        }
+      }
+      const crossBase = new THREE.PlaneGeometry(1, 1);
+      const crossGeo = new THREE.InstancedBufferGeometry();
+      crossGeo.index = crossBase.index;
+      crossGeo.attributes.position = crossBase.attributes.position;
+      crossGeo.attributes.uv = crossBase.attributes.uv;
+      crossGeo.attributes.normal = crossBase.attributes.normal;
+      const crossPositions = new Float32Array(corners.length * 2);
+      for (let i = 0; i < corners.length; i++) {
+        crossPositions[i * 2] = corners[i].x;
+        crossPositions[i * 2 + 1] = corners[i].y;
+      }
+      crossGeo.setAttribute('aCrossPos', new THREE.InstancedBufferAttribute(crossPositions, 2));
+      crossGeo.instanceCount = corners.length;
+      scene.add(new THREE.Mesh(crossGeo, new THREE.ShaderMaterial({
+        vertexShader: crossVertShader,
+        fragmentShader: crossFragShader,
+        uniforms: { uScale: { value: uScaleVec } },
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      })));
+
+      return { scene, tileMat };
+    }
+
+    // ════════════════════════════════════════════
+    //  DESKTOP SCENE: Logo + Fluids + 3-level bloom
+    // ════════════════════════════════════════════
+    const desktopScaleVec = new THREE.Vector3(14, 10, 1);
+    const desktopBuild = buildTileScene(8, 6, desktopScaleVec, true);
+    const desktopScene = desktopBuild.scene;
+    const desktopTileMat = desktopBuild.tileMat;
+
+    const desktopCamera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 100);
+    desktopCamera.position.set(0, 0, 7);
+
+    // PMREMGenerator for desktop env
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    desktopScene.environment = pmrem.fromScene(new RoomEnvironment()).texture;
+    pmrem.dispose();
+
+    // Fluid simulation
+    const FLUID_SIZE = 128;
+    const fluidOpts = {
+      minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat, type: THREE.HalfFloatType,
+      depthBuffer: false, stencilBuffer: false,
+    };
+    let fluidRT_A = new THREE.WebGLRenderTarget(FLUID_SIZE, FLUID_SIZE, fluidOpts);
+    let fluidRT_B = new THREE.WebGLRenderTarget(FLUID_SIZE, FLUID_SIZE, fluidOpts);
+    let curlRT = new THREE.WebGLRenderTarget(FLUID_SIZE, FLUID_SIZE, fluidOpts);
+
+    // Reuse bloom quad for fluid passes
+    const fluidOrtho = bloomOrtho;
+    const fluidQuad = bloomQuad;
+    const fluidScene = bloomScene;
+
+    const pointerPos = new THREE.Vector2(0.5, 0.5);
+    const pointerVec = new THREE.Vector2(0, 0);
+    const prevPointerPos = new THREE.Vector2(0.5, 0.5);
+
+    function runFluidPass(mat, output) {
+      fluidQuad.material = mat;
+      renderer.setRenderTarget(output);
+      renderer.render(fluidScene, fluidOrtho);
+    }
+
+    // Fluid shaders
+    const curlMat = new THREE.ShaderMaterial({
+      vertexShader: fullscreenVert,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform sampler2D dataTex; uniform vec2 dataSize; varying vec2 vUv;
+        void main() {
+          vec2 fc = gl_FragCoord.xy;
+          float L = texture2D(dataTex, (fc - vec2(1.0, 0.0)) / dataSize).y;
+          float R = texture2D(dataTex, (fc + vec2(1.0, 0.0)) / dataSize).y;
+          float T = texture2D(dataTex, (fc + vec2(0.0, 1.0)) / dataSize).x;
+          float B = texture2D(dataTex, (fc - vec2(0.0, 1.0)) / dataSize).x;
+          gl_FragColor = vec4((R - L) - (T - B) * 0.5 + 0.5, 0.0, 0.0, 1.0);
+        }
+      `,
+      uniforms: { dataTex: { value: null }, dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) } },
     });
-    scene.add(new THREE.Mesh(crossGeo, crossMat));
 
-    // ── Glass shader (Alche-style custom refraction) ──
+    const velocityMat = new THREE.ShaderMaterial({
+      vertexShader: fullscreenVert,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform sampler2D dataTex; uniform sampler2D curlTex; uniform vec2 dataSize;
+        uniform vec2 pointerPos; uniform vec2 pointerVec; uniform float dt; varying vec2 vUv;
+        void main() {
+          vec2 fc = gl_FragCoord.xy; vec2 uv = fc / dataSize;
+          vec4 data = texture2D(dataTex, uv); vec2 vel = data.xy;
+          float cL = texture2D(curlTex, (fc - vec2(1.0, 0.0)) / dataSize).x - 0.5;
+          float cR = texture2D(curlTex, (fc + vec2(1.0, 0.0)) / dataSize).x - 0.5;
+          float cT = texture2D(curlTex, (fc + vec2(0.0, 1.0)) / dataSize).x - 0.5;
+          float cB = texture2D(curlTex, (fc - vec2(0.0, 1.0)) / dataSize).x - 0.5;
+          float cC = texture2D(curlTex, uv).x - 0.5;
+          vec2 force = vec2(abs(cT) - abs(cB), abs(cR) - abs(cL));
+          float fLen = length(force);
+          force = fLen > 0.0001 ? force / fLen : vec2(0.0);
+          vel += force * cC * 0.15 * dt;
+          float pv = length(pointerVec);
+          float splatRadius = 0.03 + 0.15 * min(1.0, pv);
+          float dist = distance(uv, pointerPos);
+          float splat = exp(-dist * dist / (splatRadius * splatRadius));
+          vel += pointerVec * splat * 80.0 * dt;
+          gl_FragColor = vec4(vel, data.zw);
+        }
+      `,
+      uniforms: {
+        dataTex: { value: null }, curlTex: { value: null },
+        dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) },
+        pointerPos: { value: pointerPos }, pointerVec: { value: pointerVec }, dt: { value: 0.016 },
+      },
+    });
+
+    const divergenceMat = new THREE.ShaderMaterial({
+      vertexShader: fullscreenVert,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform sampler2D dataTex; uniform vec2 dataSize; varying vec2 vUv;
+        void main() {
+          vec2 fc = gl_FragCoord.xy; vec2 uv = fc / dataSize;
+          vec4 data = texture2D(dataTex, uv);
+          float L = texture2D(dataTex, (fc - vec2(1.0, 0.0)) / dataSize).x;
+          float R = texture2D(dataTex, (fc + vec2(1.0, 0.0)) / dataSize).x;
+          float T = texture2D(dataTex, (fc + vec2(0.0, 1.0)) / dataSize).y;
+          float B = texture2D(dataTex, (fc - vec2(0.0, 1.0)) / dataSize).y;
+          gl_FragColor = vec4(data.xy, 0.0, -0.5 * (R - L + T - B));
+        }
+      `,
+      uniforms: { dataTex: { value: null }, dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) } },
+    });
+
+    const pressureMat = new THREE.ShaderMaterial({
+      vertexShader: fullscreenVert,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform sampler2D dataTex; uniform vec2 dataSize; varying vec2 vUv;
+        void main() {
+          vec2 fc = gl_FragCoord.xy; vec2 uv = fc / dataSize;
+          vec4 data = texture2D(dataTex, uv);
+          float pL = texture2D(dataTex, (fc - vec2(1.0, 0.0)) / dataSize).z;
+          float pR = texture2D(dataTex, (fc + vec2(1.0, 0.0)) / dataSize).z;
+          float pT = texture2D(dataTex, (fc + vec2(0.0, 1.0)) / dataSize).z;
+          float pB = texture2D(dataTex, (fc - vec2(0.0, 1.0)) / dataSize).z;
+          gl_FragColor = vec4(data.xy, (pL + pR + pT + pB + data.w) * 0.25, data.w);
+        }
+      `,
+      uniforms: { dataTex: { value: null }, dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) } },
+    });
+
+    const gradSubMat = new THREE.ShaderMaterial({
+      vertexShader: fullscreenVert,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform sampler2D dataTex; uniform vec2 dataSize; varying vec2 vUv;
+        void main() {
+          vec2 fc = gl_FragCoord.xy; vec2 uv = fc / dataSize;
+          vec4 data = texture2D(dataTex, uv); vec2 vel = data.xy;
+          float pL = texture2D(dataTex, (fc - vec2(1.0, 0.0)) / dataSize).z;
+          float pR = texture2D(dataTex, (fc + vec2(1.0, 0.0)) / dataSize).z;
+          float pT = texture2D(dataTex, (fc + vec2(0.0, 1.0)) / dataSize).z;
+          float pB = texture2D(dataTex, (fc - vec2(0.0, 1.0)) / dataSize).z;
+          vel -= 0.5 * vec2(pR - pL, pT - pB);
+          gl_FragColor = vec4(vel, data.zw);
+        }
+      `,
+      uniforms: { dataTex: { value: null }, dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) } },
+    });
+
+    const advectMat = new THREE.ShaderMaterial({
+      vertexShader: fullscreenVert,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform sampler2D dataTex; uniform vec2 dataSize; uniform float dt; varying vec2 vUv;
+        void main() {
+          vec2 fc = gl_FragCoord.xy; vec2 uv = fc / dataSize;
+          vec2 vel = texture2D(dataTex, uv).xy;
+          vec2 prevUv = (fc - vel * dt * dataSize) / dataSize;
+          vec4 result = texture2D(dataTex, prevUv);
+          result.xy *= 0.995;
+          gl_FragColor = result;
+        }
+      `,
+      uniforms: { dataTex: { value: null }, dataSize: { value: new THREE.Vector2(FLUID_SIZE, FLUID_SIZE) }, dt: { value: 0.016 } },
+    });
+
+    // Glass shader
     const glassVertexShader = /* glsl */`
-      varying vec2 vUv;
-      varying vec3 vNormal;
-      varying vec3 vViewPos;
-
+      varying vec2 vUv; varying vec3 vNormal; varying vec3 vViewPos;
       void main() {
-        vUv = uv;
-        vNormal = normalize(normalMatrix * normal);
+        vUv = uv; vNormal = normalize(normalMatrix * normal);
         vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-        vViewPos = mvPos.xyz;
-        gl_Position = projectionMatrix * mvPos;
+        vViewPos = mvPos.xyz; gl_Position = projectionMatrix * mvPos;
       }
     `;
 
     const glassFragmentShader = /* glsl */`
       #define PI 3.14159265359
       #define SAMPLES 8
-
-      uniform sampler2D uTrnsTex;
-      uniform vec2 uTrnsWinRes;
-      uniform sampler2D uNoiseTex;
-      uniform samplerCube uEnvMap;
-      uniform sampler2D uFluidsTex;
-      uniform float uRoughness;
-      uniform float uNoiseScale;
-      uniform vec3 uMaterialColor;
-      uniform vec2 uMousePos;
-      uniform float uMouseVelocity;
-
-      varying vec2 vUv;
-      varying vec3 vNormal;
-      varying vec3 vViewPos;
-
-      float random(vec2 p) {
-        return fract(sin(dot(p.xy, vec2(12.9898, 78.233))) * 43758.5453);
-      }
-
+      uniform sampler2D uTrnsTex; uniform vec2 uTrnsWinRes; uniform sampler2D uNoiseTex;
+      uniform samplerCube uEnvMap; uniform sampler2D uFluidsTex;
+      uniform float uRoughness; uniform float uNoiseScale; uniform vec3 uMaterialColor;
+      uniform vec2 uMousePos; uniform float uMouseVelocity;
+      varying vec2 vUv; varying vec3 vNormal; varying vec3 vViewPos;
+      float random(vec2 p) { return fract(sin(dot(p.xy, vec2(12.9898, 78.233))) * 43758.5453); }
       float ggx(float dNH, float roughness) {
-        float a2 = roughness * roughness;
-        a2 = a2 * a2;
-        float dNH2 = dNH * dNH;
+        float a2 = roughness * roughness; a2 = a2 * a2; float dNH2 = dNH * dNH;
         if (dNH2 <= 0.0) return 0.0;
         return a2 / (PI * pow(dNH2 * (a2 - 1.0) + 1.0, 2.0));
       }
-
-      float fresnel(float d) {
-        float f0 = 0.1;
-        return f0 + (1.0 - f0) * pow(1.0 - d, 5.0);
-      }
-
+      float fresnel(float d) { float f0 = 0.1; return f0 + (1.0 - f0) * pow(1.0 - d, 5.0); }
       void main() {
-        vec3 normal = normalize(vNormal);
-        vec3 viewDir = normalize(-vViewPos);
+        vec3 normal = normalize(vNormal); vec3 viewDir = normalize(-vViewPos);
         vec2 trnsUv = gl_FragCoord.xy / uTrnsWinRes;
-
-        // Fluid micro-distortion on refraction UV
         vec4 fluids = texture2D(uFluidsTex, trnsUv);
         trnsUv += fluids.xy * 0.008;
         float fluidsLength = length(fluids.xy);
-
-        // Mouse interactive refraction boost
         float mouseDist = distance(trnsUv, uMousePos);
         float mouseProximity = smoothstep(0.4, 0.0, mouseDist);
-        float velocityBoost = uMouseVelocity;
-        float proximityBoost = mouseProximity * 0.6;
-        float totalBoost = max(velocityBoost, proximityBoost);
-
-        // Noise-based roughness variation (frosted glass)
+        float totalBoost = max(uMouseVelocity, mouseProximity * 0.6);
         vec4 noise = texture2D(uNoiseTex, vUv * uNoiseScale);
         vec4 noise2 = texture2D(uNoiseTex, vUv * 1.0 + (noise.xy - 0.5) * 2.0);
         float roughness = smoothstep(0.3, 0.8, noise2.y) * uRoughness;
-
-        // Refraction normal (3D normal -> 2D screen offset)
         vec2 refractNormal = normal.xy * (1.0 - normal.z * 0.7);
         float refractPower = 0.15 * (1.0 + totalBoost * 2.0);
         float slideMultiplier = 1.0 + totalBoost * 3.0;
         vec2 refractUv = trnsUv;
-
-        // Multi-sample refraction with chromatic aberration
         vec3 refractCol = vec3(0.0);
         for (int i = 0; i < SAMPLES; i++) {
           float slide = (0.01 + random(trnsUv + float(i) * 0.2) * 0.015) * slideMultiplier;
-          vec2 roughnessDir = vec2(
-            random(trnsUv + float(i) * 0.1) - 0.5,
-            random(trnsUv + float(i) * 0.2) - 0.5
-          ) * roughness * 0.3;
-
-          vec2 refractUvR = roughnessDir + refractUv - refractNormal * (refractPower + slide * 1.0);
-          vec2 refractUvG = roughnessDir + refractUv - refractNormal * (refractPower + slide * 2.0);
-          vec2 refractUvB = roughnessDir + refractUv - refractNormal * (refractPower + slide * 4.0);
-
-          refractCol.r += texture2D(uTrnsTex, refractUvR).r;
-          refractCol.g += texture2D(uTrnsTex, refractUvG).g;
-          refractCol.b += texture2D(uTrnsTex, refractUvB).b;
+          vec2 roughnessDir = vec2(random(trnsUv + float(i) * 0.1) - 0.5, random(trnsUv + float(i) * 0.2) - 0.5) * roughness * 0.3;
+          refractCol.r += texture2D(uTrnsTex, roughnessDir + refractUv - refractNormal * (refractPower + slide * 1.0)).r;
+          refractCol.g += texture2D(uTrnsTex, roughnessDir + refractUv - refractNormal * (refractPower + slide * 2.0)).g;
+          refractCol.b += texture2D(uTrnsTex, roughnessDir + refractUv - refractNormal * (refractPower + slide * 4.0)).b;
         }
         refractCol /= float(SAMPLES);
-
-        vec3 c = refractCol;
-
-        // Apply material color tint
-        c *= uMaterialColor / 255.0;
-
-        // GGX specular highlight
+        vec3 c = refractCol * uMaterialColor / 255.0;
         vec3 lightDir = normalize(vec3(4.0, 4.0, 5.0) - vViewPos);
         vec3 halfVec = normalize(viewDir + lightDir);
-        float dNH = max(dot(normal, halfVec), 0.0);
-        float spec = ggx(dNH, 0.003 + roughness * 0.4);
-        c += vec3(1.0) * spec * 0.6;
-
-        // Second specular from opposite light
+        c += vec3(1.0) * ggx(max(dot(normal, halfVec), 0.0), 0.003 + roughness * 0.4) * 0.6;
         vec3 lightDir2 = normalize(vec3(-5.0, -1.0, 4.0) - vViewPos);
         vec3 halfVec2 = normalize(viewDir + lightDir2);
-        float dNH2 = max(dot(normal, halfVec2), 0.0);
-        float spec2 = ggx(dNH2, 0.003 + roughness * 0.4);
-        c += vec3(1.0) * spec2 * 0.3;
-
-        // Fresnel + environment reflection (Alche-style blend)
+        c += vec3(1.0) * ggx(max(dot(normal, halfVec2), 0.0), 0.003 + roughness * 0.4) * 0.3;
         float F = fresnel(max(dot(viewDir, normal), 0.0));
-        vec3 reflectDir = reflect(-viewDir, normal);
-        vec3 envColor = textureCube(uEnvMap, reflectDir).rgb;
+        vec3 envColor = textureCube(uEnvMap, reflect(-viewDir, normal)).rgb;
         c = mix(c, envColor, F * 0.5) + c * F * 0.15;
-
-        // Brightness boost + fluid boost
-        c *= 1.15;
-        c *= 1.0 + fluidsLength * 2.0;
-
+        c *= 1.15; c *= 1.0 + fluidsLength * 2.0;
         gl_FragColor = vec4(c, 1.0);
       }
     `;
 
-    // ── Environment CubeMap for reflections ──
-    const cubeRT = new THREE.WebGLCubeRenderTarget(256, {
-      format: THREE.RGBAFormat,
-      generateMipmaps: true,
-      minFilter: THREE.LinearMipmapLinearFilter,
-    });
+    // Desktop render targets
+    let drtW = Math.floor(innerWidth * Math.min(devicePixelRatio, maxDPR_desktop));
+    let drtH = Math.floor(innerHeight * Math.min(devicePixelRatio, maxDPR_desktop));
+
+    const backgroundRT = new THREE.WebGLRenderTarget(drtW, drtH, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat });
+    const desktopSceneRT = new THREE.WebGLRenderTarget(drtW, drtH, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat });
+
+    const bloomRTOpts = { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat, type: THREE.HalfFloatType, depthBuffer: false, stencilBuffer: false };
+    let bw1 = Math.floor(drtW / 4), bh1 = Math.floor(drtH / 4);
+    let bw2 = Math.floor(drtW / 8), bh2 = Math.floor(drtH / 8);
+    let bw3 = Math.floor(drtW / 16), bh3 = Math.floor(drtH / 16);
+    const desktopBloomBrightRT = new THREE.WebGLRenderTarget(bw1, bh1, bloomRTOpts);
+    const desktopBloom0H = new THREE.WebGLRenderTarget(bw1, bh1, bloomRTOpts);
+    const desktopBloom0V = new THREE.WebGLRenderTarget(bw1, bh1, bloomRTOpts);
+    const desktopBloom1H = new THREE.WebGLRenderTarget(bw2, bh2, bloomRTOpts);
+    const desktopBloom1V = new THREE.WebGLRenderTarget(bw2, bh2, bloomRTOpts);
+    const desktopBloom2H = new THREE.WebGLRenderTarget(bw3, bh3, bloomRTOpts);
+    const desktopBloom2V = new THREE.WebGLRenderTarget(bw3, bh3, bloomRTOpts);
+
+    // Env cubemap
+    const cubeRT = new THREE.WebGLCubeRenderTarget(256, { format: THREE.RGBAFormat, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
     const cubeCamera = new THREE.CubeCamera(0.1, 100, cubeRT);
-    scene.add(cubeCamera);
+    desktopScene.add(cubeCamera);
 
     const glassMaterial = new THREE.ShaderMaterial({
       vertexShader: glassVertexShader,
       fragmentShader: glassFragmentShader,
       uniforms: {
         uTrnsTex: { value: backgroundRT.texture },
-        uTrnsWinRes: { value: new THREE.Vector2(rtW, rtH) },
+        uTrnsWinRes: { value: new THREE.Vector2(drtW, drtH) },
         uNoiseTex: { value: noiseTex },
         uEnvMap: { value: cubeRT.texture },
         uFluidsTex: { value: null },
@@ -1335,116 +1255,108 @@
       side: THREE.DoubleSide,
     });
 
-    const logoGroup = new THREE.Group();
-    scene.add(logoGroup);
-
+    const desktopLogoGroup = new THREE.Group();
+    desktopScene.add(desktopLogoGroup);
     let envCaptured = false;
 
-    new GLTFLoader().load('logo_black.glb', (gltf) => {
-      const model = gltf.scene;
+    // Shared helper: load, scale, rotate, center a GLTF model
+    function prepareLogoModel(model, material) {
       const box = new THREE.Box3().setFromObject(model);
       const size = box.getSize(new THREE.Vector3());
       model.scale.setScalar(3.0 / Math.max(size.x, size.y, size.z));
       model.rotation.x = Math.PI / 2;
-
       const center = new THREE.Box3().setFromObject(model).getCenter(new THREE.Vector3());
       model.position.sub(center);
+      model.traverse((child) => { if (child.isMesh) child.material = material; });
+      return model;
+    }
 
-      model.traverse((child) => { if (child.isMesh) child.material = glassMaterial; });
+    // Load GLB once, used by both desktop and mobile
+    let cachedLogoGLTF = null;
+    const logoLoadCallbacks = [];
 
-      logoGroup.add(model);
+    function getLogoModel(callback) {
+      if (cachedLogoGLTF) { callback(cachedLogoGLTF); return; }
+      logoLoadCallbacks.push(callback);
+      if (logoLoadCallbacks.length === 1) {
+        new GLTFLoader().load('logo_black.glb', (gltf) => {
+          cachedLogoGLTF = gltf;
+          logoLoadCallbacks.forEach(cb => cb(gltf));
+          logoLoadCallbacks.length = 0;
+        });
+      }
+    }
+
+    getLogoModel((gltf) => {
+      const model = prepareLogoModel(gltf.scene, glassMaterial);
+      desktopLogoGroup.add(model);
       if (window._dismissLoader) window._dismissLoader();
     });
 
-    // ── "PromptHQ" text ──
+    // "PromptHQ" text plane
     document.fonts.ready.then(() => {
       const c = document.createElement('canvas');
-      const textScale = 1;
-      c.width = 4096 * textScale; c.height = 1024 * textScale;
+      c.width = 2048; c.height = 512;
       const ctx = c.getContext('2d');
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-
-      let fs = 400;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      let fs = 200;
       ctx.font = `700 ${fs}px StackSansText, system-ui, sans-serif`;
       fs = Math.round(fs * (c.width * 0.55) / ctx.measureText('PromptHQ').width);
       ctx.font = `700 ${fs}px StackSansText, system-ui, sans-serif`;
-
       ctx.save();
-      ctx.shadowColor = 'rgba(255,255,255,0.4)';
-      ctx.shadowBlur = 100;
+      ctx.shadowColor = 'rgba(255,255,255,0.4)'; ctx.shadowBlur = 100;
       ctx.fillStyle = 'rgba(255,255,255,0.15)';
       ctx.fillText('PromptHQ', c.width / 2, c.height / 2);
       ctx.fillText('PromptHQ', c.width / 2, c.height / 2);
       ctx.restore();
-
       ctx.fillStyle = 'rgba(255,255,255,0.8)';
       ctx.fillText('PromptHQ', c.width / 2, c.height / 2);
-
       const texture = new THREE.CanvasTexture(c);
       texture.minFilter = THREE.LinearFilter;
       texture.colorSpace = THREE.SRGBColorSpace;
-
-      const dist = camera.position.z + 3;
-      const visH = 2 * Math.tan(camera.fov * Math.PI / 360) * dist;
-      const titleScale = 0.85;
-      const planeW = Math.min(visH * camera.aspect * titleScale, 10);
+      const dist = desktopCamera.position.z + 3;
+      const visH = 2 * Math.tan(desktopCamera.fov * Math.PI / 360) * dist;
+      const planeW = Math.min(visH * desktopCamera.aspect * 0.85, 10);
       const plane = new THREE.Mesh(
         new THREE.PlaneGeometry(planeW, planeW / 4),
         new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false })
       );
       plane.position.z = -3;
-      scene.add(plane);
+      desktopScene.add(plane);
     });
 
-    // ── Lights ──
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    const l1 = new THREE.PointLight(0xffffff, 5, 20);
-    l1.position.set(4, 4, 5); scene.add(l1);
-    const l2 = new THREE.PointLight(0xffe0cc, 3, 20);
-    l2.position.set(-5, -1, 4); scene.add(l2);
-    const l3 = new THREE.PointLight(0xffffff, 4, 15);
-    l3.position.set(0, 2, -3); scene.add(l3);
-    const dl = new THREE.DirectionalLight(0xffffff, 1);
-    dl.position.set(0, 5, 5); scene.add(dl);
+    // Desktop lights
+    desktopScene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const l1 = new THREE.PointLight(0xffffff, 5, 20); l1.position.set(4, 4, 5); desktopScene.add(l1);
+    const l2 = new THREE.PointLight(0xffe0cc, 3, 20); l2.position.set(-5, -1, 4); desktopScene.add(l2);
+    const l3 = new THREE.PointLight(0xffffff, 4, 15); l3.position.set(0, 2, -3); desktopScene.add(l3);
+    const dl = new THREE.DirectionalLight(0xffffff, 1); dl.position.set(0, 5, 5); desktopScene.add(dl);
 
-    // ── Bloom shaders & materials ──
-    // Bright extraction (Alche-style: threshold + multiply)
+    // Desktop bloom shaders
     const bloomBrightMat = new THREE.ShaderMaterial({
-      vertexShader: fluidVertShader,
+      vertexShader: fullscreenVert,
       fragmentShader: /* glsl */`
         precision highp float;
-        uniform sampler2D uSceneTex;
-        uniform float uThreshold;
-        varying vec2 vUv;
+        uniform sampler2D uSceneTex; uniform float uThreshold; varying vec2 vUv;
         void main() {
           vec4 c = texture2D(uSceneTex, vUv);
           vec3 f = max(vec3(0.0), c.rgb - uThreshold);
           gl_FragColor = vec4(c.rgb * f, 1.0);
         }
       `,
-      uniforms: {
-        uSceneTex: { value: null },
-        uThreshold: { value: 0.35 },
-      },
+      uniforms: { uSceneTex: { value: null }, uThreshold: { value: 0.35 } },
     });
 
-    // Separable Gaussian blur (5-tap, offset * 2.0 for wider spread)
     const bloomBlurMat = new THREE.ShaderMaterial({
-      vertexShader: fluidVertShader,
+      vertexShader: fullscreenVert,
       fragmentShader: /* glsl */`
         precision highp float;
-        uniform sampler2D uBloomTex;
-        uniform vec2 uResolution;
-        uniform bool uIsVertical;
-        varying vec2 vUv;
+        uniform sampler2D uBloomTex; uniform vec2 uResolution; uniform bool uIsVertical; varying vec2 vUv;
         void main() {
           float w0 = 0.227027, w1 = 0.1945946, w2 = 0.1216216, w3 = 0.054054, w4 = 0.016216;
           vec3 sum = w0 * texture2D(uBloomTex, vUv).rgb;
           vec2 d1 = (uIsVertical ? vec2(0.0, 1.0) : vec2(1.0, 0.0)) * 2.0;
-          vec2 d2 = d1 * 2.0;
-          vec2 d3 = d1 * 3.0;
-          vec2 d4 = d1 * 4.0;
+          vec2 d2 = d1 * 2.0; vec2 d3 = d1 * 3.0; vec2 d4 = d1 * 4.0;
           sum += w1 * (texture2D(uBloomTex, vUv + d1 / uResolution).rgb + texture2D(uBloomTex, vUv - d1 / uResolution).rgb);
           sum += w2 * (texture2D(uBloomTex, vUv + d2 / uResolution).rgb + texture2D(uBloomTex, vUv - d2 / uResolution).rgb);
           sum += w3 * (texture2D(uBloomTex, vUv + d3 / uResolution).rgb + texture2D(uBloomTex, vUv - d3 / uResolution).rgb);
@@ -1452,24 +1364,15 @@
           gl_FragColor = vec4(sum, 1.0);
         }
       `,
-      uniforms: {
-        uBloomTex: { value: null },
-        uResolution: { value: new THREE.Vector2() },
-        uIsVertical: { value: false },
-      },
+      uniforms: { uBloomTex: { value: null }, uResolution: { value: new THREE.Vector2() }, uIsVertical: { value: false } },
     });
 
-    // Composite: scene + 3 bloom levels (Alche weights + uBoost)
-    const bloomCompositeMat = new THREE.ShaderMaterial({
-      vertexShader: fluidVertShader,
+    const desktopCompositeMat = new THREE.ShaderMaterial({
+      vertexShader: fullscreenVert,
       fragmentShader: /* glsl */`
         precision highp float;
-        uniform sampler2D uSceneTex;
-        uniform sampler2D uBloom0;
-        uniform sampler2D uBloom1;
-        uniform sampler2D uBloom2;
-        uniform float uBoost;
-        varying vec2 vUv;
+        uniform sampler2D uSceneTex; uniform sampler2D uBloom0; uniform sampler2D uBloom1; uniform sampler2D uBloom2;
+        uniform float uBoost; varying vec2 vUv;
         void main() {
           vec3 col = texture2D(uSceneTex, vUv).rgb;
           col += texture2D(uBloom0, vUv).rgb * 0.3;
@@ -1479,20 +1382,8 @@
           gl_FragColor = vec4(col, 1.0);
         }
       `,
-      uniforms: {
-        uSceneTex: { value: null },
-        uBloom0: { value: null },
-        uBloom1: { value: null },
-        uBloom2: { value: null },
-        uBoost: { value: 1.15 },
-      },
+      uniforms: { uSceneTex: { value: null }, uBloom0: { value: null }, uBloom1: { value: null }, uBloom2: { value: null }, uBoost: { value: 1.15 } },
     });
-
-    function runBloomPass(mat, target) {
-      fluidQuad.material = mat;
-      renderer.setRenderTarget(target);
-      renderer.render(fluidScene, fluidOrtho);
-    }
 
     function runBlurLevel(input, hTarget, vTarget, w, h) {
       bloomBlurMat.uniforms.uBloomTex.value = input.texture;
@@ -1504,34 +1395,172 @@
       runBloomPass(bloomBlurMat, vTarget);
     }
 
-    // ── Mouse + animation ──
-    let tmx = 0, tmy = 0;
-    let prevTmx = 0, prevTmy = 0;
+    // ════════════════════════════════════════════
+    //  MOBILE SCENE: Tiles + 1-level bloom + mini logo
+    // ════════════════════════════════════════════
+    const mobileScaleVec = new THREE.Vector3(14, 10, 1);
+    const mobileBuild = buildTileScene(6, 4, mobileScaleVec, false);
+    const mobileScene = mobileBuild.scene;
+    const mobileTileMat = mobileBuild.tileMat;
+
+    const mobileCamera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 100);
+    mobileCamera.position.set(0, -1.4, 7);
+    mobileCamera.lookAt(0, -1.4, 0);
+
+    // Mobile bloom RTs
+    let mrtW = Math.floor(innerWidth * Math.min(devicePixelRatio, maxDPR_mobile));
+    let mrtH = Math.floor(innerHeight * Math.min(devicePixelRatio, maxDPR_mobile));
+    let mBloomW = Math.floor(mrtW / 4), mBloomH = Math.floor(mrtH / 4);
+
+    const mobileSceneRT = new THREE.WebGLRenderTarget(mrtW, mrtH, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat });
+    const mobileBloomBrightRT = new THREE.WebGLRenderTarget(mBloomW, mBloomH, bloomRTOpts);
+    const mobileBloom0H = new THREE.WebGLRenderTarget(mBloomW, mBloomH, bloomRTOpts);
+    const mobileBloom0V = new THREE.WebGLRenderTarget(mBloomW, mBloomH, bloomRTOpts);
+
+    // Reuse desktop bloom materials for mobile (uniforms are set before each pass)
+
+    const mobileCompositeMat = new THREE.ShaderMaterial({
+      vertexShader: fullscreenVert,
+      fragmentShader: /* glsl */`
+        precision highp float;
+        uniform sampler2D uSceneTex; uniform sampler2D uBloom0; varying vec2 vUv;
+        void main() {
+          vec3 col = texture2D(uSceneTex, vUv).rgb;
+          col += texture2D(uBloom0, vUv).rgb * 0.5;
+          col *= 1.5;
+          gl_FragColor = vec4(col, 1.0);
+        }
+      `,
+      uniforms: { uSceneTex: { value: null }, uBloom0: { value: null } },
+    });
+
+    // Mobile mini 3D logo (separate renderer in header)
+    {
+      const wrap = document.getElementById('logo-3d');
+      const size = 156;
+      const logoScene = new THREE.Scene();
+      const logoCam = new THREE.PerspectiveCamera(40, 1, 0.01, 100);
+      logoCam.position.set(0, 0, 5);
+      logoCam.lookAt(0, 0, 0);
+      const logoRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: false });
+      logoRenderer.setSize(size, size);
+      logoRenderer.setPixelRatio(1);
+      logoRenderer.setClearColor(0x000000, 0);
+      wrap.appendChild(logoRenderer.domElement);
+      logoScene.add(new THREE.AmbientLight(0xffffff, 1.2));
+      const pl = new THREE.PointLight(0xffffff, 8, 30); pl.position.set(3, 3, 5); logoScene.add(pl);
+      const pl2 = new THREE.PointLight(0xffffff, 4, 30); pl2.position.set(-3, -2, 4); logoScene.add(pl2);
+      const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.2, metalness: 0.0, roughness: 0.4, side: THREE.DoubleSide });
+      const logoGroup = new THREE.Group();
+      logoScene.add(logoGroup);
+      let logoLoaded = false;
+      getLogoModel((gltf) => {
+        const model = prepareLogoModel(gltf.scene.clone(), whiteMat);
+        logoGroup.add(model);
+        logoLoaded = true;
+      });
+      let logoStart = null;
+      let logoVisible = true;
+      new IntersectionObserver(([e]) => { logoVisible = e.isIntersecting; }).observe(wrap);
+      function animateLogo(ts) {
+        requestAnimationFrame(animateLogo);
+        if (!logoLoaded || !logoVisible || currentMode !== 'mobile') return;
+        if (!logoStart) logoStart = ts;
+        const t = (ts - logoStart) * 0.001;
+        logoGroup.rotation.z = t * 0.5;
+        logoGroup.position.y = Math.sin(t * 0.8) * 0.05;
+        logoRenderer.render(logoScene, logoCam);
+      }
+      requestAnimationFrame(animateLogo);
+    }
+
+    // ════════════════════════════════════════════
+    //  MOUSE / TOUCH
+    // ════════════════════════════════════════════
+    let tmx = 0, tmy = 0, prevTmx = 0, prevTmy = 0;
     let mouseSpeed = 0, mouseVelocity = 0;
+    const mouseRotQuat = new THREE.Quaternion();
+    const autoSpinTarget = new THREE.Quaternion();
+    const autoSpinAxis = new THREE.Vector3(0, 0, 1);
+    const tempEuler = new THREE.Euler(0, 0, 0);
+    let hoverVelX = 0, hoverVelY = 0, autoSpinAngle = 0, prevAnimTime = 0;
 
     addEventListener('mousemove', e => {
       tmx = (e.clientX / innerWidth) * 2 - 1;
       tmy = -(e.clientY / innerHeight) * 2 + 1;
     });
-
-    // Touch support for mobile
     addEventListener('touchstart', e => {
-      if (!e.target.closest('a, button, input, .nl-input-row')) e.preventDefault();
+      if (!e.target.closest('a, button, input, .nl-input-row, #mobile-app')) e.preventDefault();
     }, { passive: false });
     addEventListener('touchmove', e => {
-      e.preventDefault();
-      const t = e.touches[0];
-      tmx = (t.clientX / innerWidth) * 2 - 1;
-      tmy = -(t.clientY / innerHeight) * 2 + 1;
+      if (currentMode === 'desktop') {
+        e.preventDefault();
+        const t = e.touches[0];
+        tmx = (t.clientX / innerWidth) * 2 - 1;
+        tmy = -(t.clientY / innerHeight) * 2 + 1;
+      }
     }, { passive: false });
-
-    // Click = strong lateral impulse (like a fast flick)
     addEventListener('pointerdown', e => {
+      if (currentMode !== 'desktop') return;
       if (e.target.closest('a, button, .widgets-container')) return;
       if (!startTime || (performance.now() - startTime) * 0.001 < ENTRANCE_DURATION) return;
       hoverVelY += 0.167;
     });
 
+    // ════════════════════════════════════════════
+    //  SWITCH MODE
+    // ════════════════════════════════════════════
+    function switchMode(newMode) {
+      if (newMode === currentMode) return;
+      currentMode = newMode;
+      renderer.setPixelRatio(Math.min(devicePixelRatio, getMaxDPR()));
+    }
+
+    // ════════════════════════════════════════════
+    //  RESIZE
+    // ════════════════════════════════════════════
+    addEventListener('resize', () => {
+      const newMode = innerWidth <= MOBILE_BREAKPOINT ? 'mobile' : 'desktop';
+      switchMode(newMode);
+
+      renderer.setSize(innerWidth, innerHeight);
+
+      // Desktop camera
+      desktopCamera.aspect = innerWidth / innerHeight;
+      desktopCamera.fov = desktopCamera.aspect < 0.8 ? 55 : 40;
+      desktopCamera.updateProjectionMatrix();
+
+      // Mobile camera
+      mobileCamera.aspect = innerWidth / innerHeight;
+      mobileCamera.updateProjectionMatrix();
+
+      // Desktop RTs
+      drtW = Math.floor(innerWidth * Math.min(devicePixelRatio, maxDPR_desktop));
+      drtH = Math.floor(innerHeight * Math.min(devicePixelRatio, maxDPR_desktop));
+      backgroundRT.setSize(drtW, drtH);
+      desktopSceneRT.setSize(drtW, drtH);
+      glassMaterial.uniforms.uTrnsWinRes.value.set(drtW, drtH);
+      bw1 = Math.floor(drtW / 4); bh1 = Math.floor(drtH / 4);
+      bw2 = Math.floor(drtW / 8); bh2 = Math.floor(drtH / 8);
+      bw3 = Math.floor(drtW / 16); bh3 = Math.floor(drtH / 16);
+      desktopBloomBrightRT.setSize(bw1, bh1);
+      desktopBloom0H.setSize(bw1, bh1); desktopBloom0V.setSize(bw1, bh1);
+      desktopBloom1H.setSize(bw2, bh2); desktopBloom1V.setSize(bw2, bh2);
+      desktopBloom2H.setSize(bw3, bh3); desktopBloom2V.setSize(bw3, bh3);
+
+      // Mobile RTs
+      mrtW = Math.floor(innerWidth * Math.min(devicePixelRatio, maxDPR_mobile));
+      mrtH = Math.floor(innerHeight * Math.min(devicePixelRatio, maxDPR_mobile));
+      mBloomW = Math.floor(mrtW / 4); mBloomH = Math.floor(mrtH / 4);
+      mobileSceneRT.setSize(mrtW, mrtH);
+      mobileBloomBrightRT.setSize(mBloomW, mBloomH);
+      mobileBloom0H.setSize(mBloomW, mBloomH);
+      mobileBloom0V.setSize(mBloomW, mBloomH);
+    });
+
+    // ════════════════════════════════════════════
+    //  ANIMATION LOOP
+    // ════════════════════════════════════════════
     const ENTRANCE_DURATION = 2.0;
     let startTime = null;
 
@@ -1542,166 +1571,135 @@
       const deltaTime = prevAnimTime > 0 ? Math.min((timestamp - prevAnimTime) * 0.001, 0.05) : 0.016;
       prevAnimTime = timestamp;
 
-      logoGroup.scale.setScalar(1 - Math.pow(1 - Math.min(elapsed / ENTRANCE_DURATION, 1), 3));
+      if (currentMode === 'desktop') {
+        // ── DESKTOP FRAME ──
+        desktopLogoGroup.scale.setScalar(1 - Math.pow(1 - Math.min(elapsed / ENTRANCE_DURATION, 1), 3));
+        desktopTileMat.uniforms.uTime.value = elapsed;
 
-      tileMat.uniforms.uTime.value = elapsed;
+        // Mouse tracking
+        const dx = tmx - prevTmx, dy = tmy - prevTmy;
+        mouseSpeed = Math.sqrt(dx * dx + dy * dy);
+        prevTmx = tmx; prevTmy = tmy;
+        mouseVelocity += (mouseSpeed * 8.0 - mouseVelocity) * 0.1;
+        mouseVelocity *= 0.95;
+        mouseVelocity = Math.min(mouseVelocity, 1.0);
 
-      // 1. Smooth mouse + velocity tracking
-      const dx = tmx - prevTmx;
-      const dy = tmy - prevTmy;
-      mouseSpeed = Math.sqrt(dx * dx + dy * dy);
-      prevTmx = tmx; prevTmy = tmy;
-      mouseVelocity += (mouseSpeed * 8.0 - mouseVelocity) * 0.1;
-      mouseVelocity *= 0.95;
-      mouseVelocity = Math.min(mouseVelocity, 1.0);
+        glassMaterial.uniforms.uMousePos.value.set((tmx + 1.0) * 0.5, (tmy + 1.0) * 0.5);
+        glassMaterial.uniforms.uMouseVelocity.value = mouseVelocity;
 
-      // 2. Update glass interactive refraction uniforms
-      glassMaterial.uniforms.uMousePos.value.set(
-        (tmx + 1.0) * 0.5,
-        (tmy + 1.0) * 0.5
-      );
-      glassMaterial.uniforms.uMouseVelocity.value = mouseVelocity;
+        // Fluid pointer
+        pointerPos.set((tmx + 1.0) * 0.5, (tmy + 1.0) * 0.5);
+        const pdx = pointerPos.x - prevPointerPos.x, pdy = pointerPos.y - prevPointerPos.y;
+        const rawLen = Math.sqrt(pdx * pdx + pdy * pdy);
+        const boosted = Math.pow(rawLen + 1.0, 1.6) - 1.0;
+        const scale = rawLen > 0.0001 ? boosted / rawLen : 0;
+        pointerVec.x += pdx * scale; pointerVec.y += pdy * scale;
+        pointerVec.multiplyScalar(0.7);
+        prevPointerPos.copy(pointerPos);
 
-      // 3. Fluid pointer tracking
-      pointerPos.set((tmx + 1.0) * 0.5, (tmy + 1.0) * 0.5);
-      const pdx = pointerPos.x - prevPointerPos.x;
-      const pdy = pointerPos.y - prevPointerPos.y;
-      // Non-linear accumulation with pow(1.6)
-      const rawLen = Math.sqrt(pdx * pdx + pdy * pdy);
-      const boosted = Math.pow(rawLen + 1.0, 1.6) - 1.0;
-      const scale = rawLen > 0.0001 ? boosted / rawLen : 0;
-      pointerVec.x += pdx * scale;
-      pointerVec.y += pdy * scale;
-      pointerVec.multiplyScalar(0.7); // decay per frame
-      prevPointerPos.copy(pointerPos);
+        // Fluid simulation
+        velocityMat.uniforms.dt.value = deltaTime;
+        advectMat.uniforms.dt.value = deltaTime;
 
-      // 4. Run fluid simulation passes
-      velocityMat.uniforms.dt.value = deltaTime;
-      advectMat.uniforms.dt.value = deltaTime;
-
-      // Pass 1: Curl
-      curlMat.uniforms.dataTex.value = fluidRT_A.texture;
-      runFluidPass(curlMat, curlRT);
-
-      // Pass 2: Velocity (vorticity confinement + mouse)
-      velocityMat.uniforms.dataTex.value = fluidRT_A.texture;
-      velocityMat.uniforms.curlTex.value = curlRT.texture;
-      runFluidPass(velocityMat, fluidRT_B);
-      let tmp = fluidRT_A; fluidRT_A = fluidRT_B; fluidRT_B = tmp;
-
-      // Pass 3: Divergence
-      divergenceMat.uniforms.dataTex.value = fluidRT_A.texture;
-      runFluidPass(divergenceMat, fluidRT_B);
-      tmp = fluidRT_A; fluidRT_A = fluidRT_B; fluidRT_B = tmp;
-
-      // Pass 4: Pressure (4 Jacobi iterations)
-      for (let i = 0; i < 4; i++) {
-        pressureMat.uniforms.dataTex.value = fluidRT_A.texture;
-        runFluidPass(pressureMat, fluidRT_B);
+        curlMat.uniforms.dataTex.value = fluidRT_A.texture;
+        runFluidPass(curlMat, curlRT);
+        velocityMat.uniforms.dataTex.value = fluidRT_A.texture;
+        velocityMat.uniforms.curlTex.value = curlRT.texture;
+        runFluidPass(velocityMat, fluidRT_B);
+        let tmp = fluidRT_A; fluidRT_A = fluidRT_B; fluidRT_B = tmp;
+        divergenceMat.uniforms.dataTex.value = fluidRT_A.texture;
+        runFluidPass(divergenceMat, fluidRT_B);
         tmp = fluidRT_A; fluidRT_A = fluidRT_B; fluidRT_B = tmp;
+        for (let i = 0; i < 4; i++) {
+          pressureMat.uniforms.dataTex.value = fluidRT_A.texture;
+          runFluidPass(pressureMat, fluidRT_B);
+          tmp = fluidRT_A; fluidRT_A = fluidRT_B; fluidRT_B = tmp;
+        }
+        gradSubMat.uniforms.dataTex.value = fluidRT_A.texture;
+        runFluidPass(gradSubMat, fluidRT_B);
+        tmp = fluidRT_A; fluidRT_A = fluidRT_B; fluidRT_B = tmp;
+        advectMat.uniforms.dataTex.value = fluidRT_A.texture;
+        runFluidPass(advectMat, fluidRT_B);
+        tmp = fluidRT_A; fluidRT_A = fluidRT_B; fluidRT_B = tmp;
+
+        desktopTileMat.uniforms.uFluidsTex.value = fluidRT_A.texture;
+        glassMaterial.uniforms.uFluidsTex.value = fluidRT_A.texture;
+
+        // Logo rotation
+        autoSpinAngle += 0.085 * deltaTime;
+        autoSpinTarget.setFromAxisAngle(autoSpinAxis, autoSpinAngle);
+        if (elapsed < 0.8) hoverVelY += 0.25 * deltaTime;
+        const rotSens = 0.024;
+        hoverVelX -= dy * rotSens; hoverVelY += dx * rotSens;
+        const friction = Math.pow(0.35, deltaTime);
+        hoverVelX *= friction; hoverVelY *= friction;
+        tempEuler.set(hoverVelX, hoverVelY, 0);
+        mouseRotQuat.setFromEuler(tempEuler);
+        desktopLogoGroup.quaternion.premultiply(mouseRotQuat);
+        desktopLogoGroup.quaternion.slerp(autoSpinTarget, Math.min(0.15 * deltaTime, 1.0));
+        desktopLogoGroup.position.y = Math.sin(elapsed * 0.4) * 0.06;
+
+        // Env cubemap (once)
+        if (!envCaptured && desktopLogoGroup.children.length > 0) {
+          desktopLogoGroup.visible = false;
+          cubeCamera.position.copy(desktopLogoGroup.position);
+          cubeCamera.update(renderer, desktopScene);
+          desktopLogoGroup.visible = true;
+          envCaptured = true;
+        }
+
+        // Two-pass render
+        desktopLogoGroup.visible = false;
+        renderer.setRenderTarget(backgroundRT);
+        renderer.render(desktopScene, desktopCamera);
+        desktopLogoGroup.visible = true;
+
+        renderer.setRenderTarget(desktopSceneRT);
+        renderer.render(desktopScene, desktopCamera);
+
+        // 3-level bloom
+        bloomBrightMat.uniforms.uSceneTex.value = desktopSceneRT.texture;
+        runBloomPass(bloomBrightMat, desktopBloomBrightRT);
+        runBlurLevel(desktopBloomBrightRT, desktopBloom0H, desktopBloom0V, bw1, bh1);
+        runBlurLevel(desktopBloom0V, desktopBloom1H, desktopBloom1V, bw2, bh2);
+        runBlurLevel(desktopBloom1V, desktopBloom2H, desktopBloom2V, bw3, bh3);
+
+        desktopCompositeMat.uniforms.uSceneTex.value = desktopSceneRT.texture;
+        desktopCompositeMat.uniforms.uBloom0.value = desktopBloom0V.texture;
+        desktopCompositeMat.uniforms.uBloom1.value = desktopBloom1V.texture;
+        desktopCompositeMat.uniforms.uBloom2.value = desktopBloom2V.texture;
+        runBloomPass(desktopCompositeMat, null);
+
+      } else {
+        // ── MOBILE FRAME ──
+        mobileTileMat.uniforms.uTime.value = elapsed;
+
+        // Render scene to RT
+        renderer.setRenderTarget(mobileSceneRT);
+        renderer.render(mobileScene, mobileCamera);
+
+        // 1-level bloom (reuse desktop bloom materials)
+        bloomBrightMat.uniforms.uSceneTex.value = mobileSceneRT.texture;
+        runBloomPass(bloomBrightMat, mobileBloomBrightRT);
+
+        bloomBlurMat.uniforms.uBloomTex.value = mobileBloomBrightRT.texture;
+        bloomBlurMat.uniforms.uResolution.value.set(mBloomW, mBloomH);
+        bloomBlurMat.uniforms.uIsVertical.value = false;
+        runBloomPass(bloomBlurMat, mobileBloom0H);
+
+        bloomBlurMat.uniforms.uBloomTex.value = mobileBloom0H.texture;
+        bloomBlurMat.uniforms.uIsVertical.value = true;
+        runBloomPass(bloomBlurMat, mobileBloom0V);
+
+        // Composite
+        mobileCompositeMat.uniforms.uSceneTex.value = mobileSceneRT.texture;
+        mobileCompositeMat.uniforms.uBloom0.value = mobileBloom0V.texture;
+        runBloomPass(mobileCompositeMat, null);
       }
-
-      // Pass 5: Gradient subtract
-      gradSubMat.uniforms.dataTex.value = fluidRT_A.texture;
-      runFluidPass(gradSubMat, fluidRT_B);
-      tmp = fluidRT_A; fluidRT_A = fluidRT_B; fluidRT_B = tmp;
-
-      // Pass 6: Advect
-      advectMat.uniforms.dataTex.value = fluidRT_A.texture;
-      runFluidPass(advectMat, fluidRT_B);
-      tmp = fluidRT_A; fluidRT_A = fluidRT_B; fluidRT_B = tmp;
-
-      // Update fluid texture uniforms for downstream shaders
-      tileMat.uniforms.uFluidsTex.value = fluidRT_A.texture;
-      glassMaterial.uniforms.uFluidsTex.value = fluidRT_A.texture;
-
-      // 5. Quaternion-based logo rotation
-      // Advance auto-spin target (always accumulating, never reset)
-      autoSpinAngle += 0.085 * deltaTime;
-      autoSpinTarget.setFromAxisAngle(autoSpinAxis, autoSpinAngle);
-      // Initial lateral spin impulse during entrance
-      if (elapsed < 0.8) hoverVelY += 0.25 * deltaTime;
-
-      // Accumulate mouse velocity as angular momentum
-      const rotSens = 0.024;
-      hoverVelX -= dy * rotSens;
-      hoverVelY += dx * rotSens;
-      // Friction decay — 0.35 base: retains ~35% after 1s (strong inertia)
-      const friction = Math.pow(0.35, deltaTime);
-      hoverVelX *= friction;
-      hoverVelY *= friction;
-      // Apply incremental rotation from mouse velocity this frame
-      tempEuler.set(hoverVelX, hoverVelY, 0);
-      mouseRotQuat.setFromEuler(tempEuler);
-      logoGroup.quaternion.premultiply(mouseRotQuat);
-      // Slerp toward the spinning target (not identity — preserves auto-spin)
-      const returnForce = Math.min(0.15 * deltaTime, 1.0);
-      logoGroup.quaternion.slerp(autoSpinTarget, returnForce);
-      // Gentle vertical float
-      logoGroup.position.y = Math.sin(elapsed * 0.4) * 0.06;
-
-      // Capture environment cubemap once (after first frame setup)
-      if (!envCaptured && logoGroup.children.length > 0) {
-        logoGroup.visible = false;
-        cubeCamera.position.copy(logoGroup.position);
-        cubeCamera.update(renderer, scene);
-        logoGroup.visible = true;
-        envCaptured = true;
-      }
-
-      // Two-pass rendering: background RT (for glass refraction) then scene RT
-      logoGroup.visible = false;
-      renderer.setRenderTarget(backgroundRT);
-      renderer.render(scene, camera);
-      logoGroup.visible = true;
-
-      // Render full scene to sceneRT (not screen)
-      renderer.setRenderTarget(sceneRT);
-      renderer.render(scene, camera);
-
-      // Bloom: bright extraction
-      bloomBrightMat.uniforms.uSceneTex.value = sceneRT.texture;
-      runBloomPass(bloomBrightMat, bloomBrightRT);
-
-      // Bloom: gaussian blur (2 levels on mobile, 3 on desktop)
-      runBlurLevel(bloomBrightRT, bloom0H, bloom0V, bw1, bh1);
-      runBlurLevel(bloom0V, bloom1H, bloom1V, bw2, bh2);
-      runBlurLevel(bloom1V, bloom2H, bloom2V, bw3, bh3);
-
-      // Composite: scene + bloom → screen
-      bloomCompositeMat.uniforms.uSceneTex.value = sceneRT.texture;
-      bloomCompositeMat.uniforms.uBloom0.value = bloom0V.texture;
-      bloomCompositeMat.uniforms.uBloom1.value = bloom1V.texture;
-      bloomCompositeMat.uniforms.uBloom2.value = bloom2V.texture;
-      runBloomPass(bloomCompositeMat, null);
     }
 
     requestAnimationFrame(animate);
     setTimeout(() => { if (window._dismissLoader) window._dismissLoader(); }, 5000);
-
-    addEventListener('resize', () => {
-      camera.aspect = innerWidth / innerHeight;
-      camera.fov = camera.aspect < 0.8 ? 55 : 40;
-      camera.updateProjectionMatrix();
-      renderer.setSize(innerWidth, innerHeight);
-
-      // Update render target sizes
-      const newW = Math.floor(innerWidth * Math.min(devicePixelRatio, maxDPR));
-      const newH = Math.floor(innerHeight * Math.min(devicePixelRatio, maxDPR));
-      backgroundRT.setSize(newW, newH);
-      sceneRT.setSize(newW, newH);
-      glassMaterial.uniforms.uTrnsWinRes.value.set(newW, newH);
-
-      // Bloom RT resize
-      bw1 = Math.floor(newW / 4); bh1 = Math.floor(newH / 4);
-      bw2 = Math.floor(newW / 8); bh2 = Math.floor(newH / 8);
-      bw3 = Math.floor(newW / 16); bh3 = Math.floor(newH / 16);
-      bloomBrightRT.setSize(bw1, bh1);
-      bloom0H.setSize(bw1, bh1); bloom0V.setSize(bw1, bh1);
-      bloom1H.setSize(bw2, bh2); bloom1V.setSize(bw2, bh2);
-      bloom2H.setSize(bw3, bh3); bloom2V.setSize(bw3, bh3);
-
-    });
   </script>
 </body>
 </html>
