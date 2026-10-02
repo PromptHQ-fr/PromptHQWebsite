@@ -14,6 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="/analytics.js?v=1" defer></script>
   <style>
     @font-face {
       font-family: 'StackSansText';
@@ -512,6 +513,7 @@
       .then(function(d) {
         input.style.color = '#F82F02';
         if (d.status === 'ok') {
+          if (window.trackEvent) window.trackEvent('sign_up', { form_name: 'newsletter', method: 'email' });
           input.value = 'inscrit !';
           input.readOnly = true;
         } else if (d.status === 'duplicate') {
