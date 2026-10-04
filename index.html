@@ -164,7 +164,8 @@ function main() {
   let posterReady = false, videoLive = false;
   posterImg.onload = () => { posterTex.needsUpdate = true; posterReady = true; };
   posterImg.src = '/media/wall.jpg';
-  const tryPlay = () => { const pr = video.play(); if (pr && pr.catch) pr.catch(() => {}); };
+  // animations réduites : la vidéo des murs joue à mi-vitesse (en dessous, elle saccade)
+  const tryPlay = () => { if (REDUCED) video.playbackRate = 0.5; const pr = video.play(); if (pr && pr.catch) pr.catch(() => {}); };
   tryPlay();
   addEventListener('pointerdown', tryPlay, { once: true });
   addEventListener('touchstart', tryPlay, { once: true, passive: true });
@@ -603,19 +604,19 @@ function main() {
   let t0 = 0;
   addEventListener('pointerdown', e => {
     if (e.target.closest('a, button')) return;
-    if (!t0 || (performance.now() - t0) / 1000 < ENTRANCE) return;
+    if (!t0 || (!REDUCED && (performance.now() - t0) / 1000 < ENTRANCE)) return;
     hvy += 0.167;
   });
 
   /* ---------- Boucle ---------- */
-  let prev = 0, lastRender = 0;
+  let prev = 0;
   function frame(ts) {
     requestAnimationFrame(frame);
     if (document.hidden) { prev = ts; return; }
-    if (REDUCED && ts - lastRender < 250) return;
-    lastRender = ts;
     if (!t0) t0 = ts;
-    const el = (ts - t0) / 1000 * (REDUCED ? 0.2 : 1);
+    // animations réduites : rendu fluide, mais mouvement autonome ralenti et sans animation d'entrée
+    const slow = REDUCED ? 0.2 : 1;
+    const el = (ts - t0) / 1000 * slow;
     const dt = prev ? Math.min((ts - prev) / 1000, 0.05) : 0.016;
     prev = ts;
 
@@ -646,16 +647,16 @@ function main() {
     mVel += (Math.hypot(dx, dy) * 8 - mVel) * 0.1; mVel = Math.min(mVel * 0.95, 1);
     glassMat.uniforms.uMousePos.value.set((tmx + 1) / 2, (tmy + 1) / 2);
     glassMat.uniforms.uMouseVelocity.value = mVel;
-    spin += 0.085 * dt;
+    spin += 0.085 * dt * slow;
     spinQ.setFromAxisAngle(zAxis, spin);
-    if (el < 0.8) hvy += 0.25 * dt;
+    if (!REDUCED && el < 0.8) hvy += 0.25 * dt;
     hvx -= dy * 0.024; hvy += dx * 0.024;
     const fr = Math.pow(0.35, dt); hvx *= fr; hvy *= fr;
     eul.set(hvx, hvy, 0); rotQ.setFromEuler(eul);
     logoGroup.quaternion.premultiply(rotQ);
     logoGroup.quaternion.slerp(spinQ, Math.min(0.15 * dt, 1));
     logoGroup.position.y = Math.sin(el * 0.4) * 0.06;
-    const entrance = 1 - Math.pow(1 - Math.min(el / ENTRANCE, 1), 3);
+    const entrance = REDUCED ? 1 : 1 - Math.pow(1 - Math.min(el / ENTRANCE, 1), 3);
     const logoSize = camL.aspect < 1 ? 0.55 : 0.8;
     logoGroup.scale.setScalar(Math.max(0.0001, logoSize * entrance));
     const showLogo = logoLoaded && entrance > 0.01;
